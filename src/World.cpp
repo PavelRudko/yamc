@@ -108,6 +108,14 @@ namespace yamc
 		}
 	}
 
+	void World::saveWorld()
+	{
+		auto chunks = terrain.getChunks();
+		for (uint64_t key : terrain.getDirtyChunkKeys()) {
+			writeChunkToFile(getChunkPath(key), chunks[key]);
+		}
+	}
+
 	void World::updateEntityPosition(Entity* entity, float dt)
 	{
 		entity->boundingBox.center += entity->velocity * dt;

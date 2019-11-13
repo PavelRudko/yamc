@@ -40,6 +40,7 @@ namespace yamc
 		World(World&& other) = default;
 
 		void update(float dt);
+		void saveWorld();
 
 		const Terrain& getTerrain() const;
 		Terrain& getTerrain();

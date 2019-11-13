@@ -51,6 +51,8 @@ void run(GLFWwindow* window)
 			std::this_thread::sleep_for(std::chrono::nanoseconds(minFrameNanoseconds - elapsedNanoseconds));
 		}
 	}
+
+	game.onExit();
 }
 
 int main()

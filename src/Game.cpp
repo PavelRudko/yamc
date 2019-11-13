@@ -232,6 +232,11 @@ namespace yamc
 		glViewport(0, 0, width, height);
 	}
 
+	void Game::onExit()
+	{
+		world.saveWorld();
+	}
+
 	Game::~Game()
 	{
 		
