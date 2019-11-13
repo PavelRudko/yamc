@@ -7,6 +7,11 @@
 
 namespace yamc
 {
+	int getChunkIndex(int worldIndex, int chunkSize);
+	uint64_t getChunkKey(int high, int low);
+	glm::ivec2 getChunkOffset(uint64_t key);
+	void fillChunk(Chunk* chunk, int offsetX, int offsetZ, int seed);
+
 	class Terrain
 	{
 	public:
@@ -14,7 +19,7 @@ namespace yamc
 		uint32_t getBlock(int x, int y, int z) const;
 		void setBlock(int x, int y, int z, uint32_t id);
 		const std::unordered_map<uint64_t, Chunk*>& getChunks() const;
-		static glm::ivec2 getChunkOffset(uint64_t key);
+		std::unordered_map<uint64_t, Chunk*>& getChunks();
 		~Terrain();
 
 	private:

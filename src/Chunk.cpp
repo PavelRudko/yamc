@@ -180,11 +180,11 @@ namespace yamc
 		}
 
 		if (vertexBufferID > 0) {
-			glDeleteVertexArrays(1, &vertexBufferID);
+			glDeleteBuffers(1, &vertexBufferID);
 		}
 
 		if (indexBufferID > 0) {
-			glDeleteVertexArrays(1, &indexBufferID);
+			glDeleteBuffers(1, &indexBufferID);
 		}
 	}
 }

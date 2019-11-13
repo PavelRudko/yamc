@@ -101,10 +101,14 @@ namespace yamc
 		return (std::numeric_limits<uint32_t>::max)() & key;
 	}
 
-	uint32_t getLocalBlockIndex(int worldIndex, uint32_t chunkSize)
+	uint64_t getChunkKey(int high, int low)
 	{
-		int localIndex = worldIndex % chunkSize;
-		return localIndex >= 0 ? localIndex : chunkSize - localIndex - 1;
+		return pack(high, low);
+	}
+
+	glm::ivec2 getChunkOffset(uint64_t key)
+	{
+		return glm::ivec2((int32_t)high(key), (int32_t)low(key));
 	}
 
 	int getChunkIndex(int worldIndex, int chunkSize)
@@ -115,18 +119,14 @@ namespace yamc
 		return worldIndex / chunkSize;
 	}
 
+	uint32_t getLocalBlockIndex(int worldIndex, uint32_t chunkSize)
+	{
+		int localIndex = worldIndex % chunkSize;
+		return localIndex >= 0 ? localIndex : chunkSize - localIndex - 1;
+	}
+
 	Terrain::Terrain()
 	{
-		for (int32_t chunkX = -3; chunkX < 4; chunkX++) {
-			for (int32_t chunkZ = -3; chunkZ < 4; chunkZ++) {
-				auto chunk = new Chunk();
-				fillChunk(chunk, chunkX, chunkZ, 0);
-				chunk->update();
-
-				uint64_t key = pack(chunkX, chunkZ);
-				chunks[key] = chunk;
-			}
-		}
 	}
 
 	bool Terrain::findBlock(Chunk** outChunk, uint32_t& localX, uint32_t& localZ, int x, int y, int z) const
@@ -177,9 +177,9 @@ namespace yamc
 		return chunks;
 	}
 
-	glm::ivec2 Terrain::getChunkOffset(uint64_t key)
+	std::unordered_map<uint64_t, Chunk*>& Terrain::getChunks()
 	{
-		return glm::ivec2((int32_t)high(key), (int32_t)low(key));
+		return chunks;
 	}
 
 	Terrain::~Terrain()

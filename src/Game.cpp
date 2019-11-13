@@ -6,73 +6,6 @@
 
 namespace yamc
 {
-	bool hasIntersection(const AABB& a, const AABB& b)
-	{
-		for (int i = 0; i < 3; i++) {
-			float aMin = a.center[i] - a.halfSize[i];
-			float aMax = a.center[i] + a.halfSize[i];
-			float bMin = b.center[i] - b.halfSize[i];
-			float bMax = b.center[i] + b.halfSize[i];
-
-			if (bMax < aMin) {
-				return false;
-			}
-
-			if (bMin > aMax) {
-				return false;
-			}
-		}
-		return true;
-	}
-
-	bool getContact(const AABB& a, const AABB& b, glm::vec3& normal, float& penetration) 
-	{
-		penetration = std::numeric_limits<float>().infinity();
-		auto diff = a.center - b.center;
-
-		for (int i = 0; i < 3; i++) {
-			float axisDiff = diff[i];
-			float ra = a.halfSize[i];
-			float rb = b.halfSize[i];
-
-			if (abs(axisDiff) >= ra + rb) {
-				return false;
-			}
-
-			float p = abs(axisDiff) - ra;
-			p = rb - p;
-			if (p < penetration) {
-				normal = glm::vec3(0, 0, 0);
-				normal[i] = axisDiff > 0 ? 1.0f : -1.0f;
-				penetration = p;
-			}
-		}
-		return true;
-	}
-
-	void resolveEntityTerrainCollisions(Entity& entity, const std::vector<glm::vec3>& potentialBlocks) 
-	{
-		static float bias = 0.00001f;
-		entity.isGrounded = false;
-
-		for (auto block : potentialBlocks) {
-			AABB blockBoundingBox;
-			blockBoundingBox.center = block + glm::vec3(0.5f, 0.5f, 0.5f);
-			blockBoundingBox.halfSize = glm::vec3(0.5f, 0.5f, 0.5f);
-
-			glm::vec3 normal;
-			float penetration = 0;
-			if (getContact(entity.boundingBox, blockBoundingBox, normal, penetration)) {
-				entity.boundingBox.center += normal * (penetration + bias);
-				float velocityProjection = glm::dot(entity.velocity, normal);
-				entity.velocity -= normal * velocityProjection;
-				if (normal.y > 0) {
-					entity.isGrounded = true;
-				}
-			}
-		}
-	}
-
 	Game::Game(GLFWwindow* window) :
 		window(window),
 		isCursorLocked(true),
@@ -80,7 +13,9 @@ namespace yamc
 		wasRightMouseButtonPressed(false),
 		mouseSensitivity(0.002f),
 		moveSpeed(3.0f),
-		fps(0)
+		fps(0),
+		world("test", 5105340),
+		player(world.getPlayer())
 	{
 		currentBlockSelection.isSelected = false;
 
@@ -88,11 +23,6 @@ namespace yamc
 
 		glfwSetCursorPos(window, windowWidth / 2, windowHeight / 2);
 		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-
-		player.boundingBox.center = glm::vec3(0, 47.7f + 0.9f, 0);
-		player.boundingBox.halfSize = glm::vec3(0.4f, 0.9f, 0.4f);
-		player.velocity = glm::vec3(0, 0, 0);
-		player.isGrounded = false;
 	}
 
 	void Game::update(float dt)
@@ -102,7 +32,7 @@ namespace yamc
 		if (!player.isGrounded) {
 			player.velocity.y -= 7.5f * dt;
 		}
-		updateEntityPosition(player, dt);
+		world.update(dt);
 
 		camera.setPosition(player.boundingBox.center + glm::vec3(0, 0.6f, 0));
 		currentBlockSelection = findBlockSelection(camera.getPosition(), camera.getLookDirection(), 4.0f);
@@ -153,7 +83,7 @@ namespace yamc
 			tmax[axis] += delta[axis];
 			currentBlock[axis] += step[axis];
 
-			uint32_t block = terrain.getBlock(currentBlock.x, currentBlock.y, currentBlock.z);
+			uint32_t block = world.getTerrain().getBlock(currentBlock.x, currentBlock.y, currentBlock.z);
 			if (block > 0) {
 				selection.isSelected = true;
 				selection.coordinate = currentBlock;
@@ -174,7 +104,7 @@ namespace yamc
 		if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_1) == GLFW_PRESS) {
 			if (isCursorLocked) {
 				if (currentBlockSelection.isSelected && !wasLeftMouseButtonPressed) {
-					terrain.setBlock(currentBlockSelection.coordinate.x, currentBlockSelection.coordinate.y, currentBlockSelection.coordinate.z, 0);
+					world.getTerrain().setBlock(currentBlockSelection.coordinate.x, currentBlockSelection.coordinate.y, currentBlockSelection.coordinate.z, 0);
 				}
 			}
 			else {
@@ -197,7 +127,7 @@ namespace yamc
 					blockBoundingBox.center = (glm::vec3)block + glm::vec3(0.5f, 0.5f, 0.5f);
 					blockBoundingBox.halfSize = glm::vec3(0.5f, 0.5f, 0.5f);
 					if (!hasIntersection(player.boundingBox, blockBoundingBox)) {
-						terrain.setBlock(block.x, block.y, block.z, 1);
+						world.getTerrain().setBlock(block.x, block.y, block.z, 1);
 					}
 				}
 			}
@@ -246,47 +176,16 @@ namespace yamc
 		velocity += direction * speedForward;
 		velocity += glm::normalize(glm::cross(direction, glm::vec3(0, 1, 0))) * speedSide;
 
+		if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT)) {
+			velocity *= 2.0f;
+		}
+
 		player.velocity.x = velocity.x * moveSpeed;
 		player.velocity.z = velocity.z * moveSpeed;
 
 		if (player.isGrounded && glfwGetKey(window, GLFW_KEY_SPACE)) {
 			player.velocity.y += 6.0f;
 		}
-	}
-
-	float getDistanceToBlockCenter(const Entity& entity, const glm::vec3& block)
-	{
-		auto blockCenter = block + glm::vec3(0.5f, 0.5f, 0.5f);
-		return glm::length(blockCenter - entity.boundingBox.center);
-	}
-
-	void Game::updateEntityPosition(Entity& entity, float dt)
-	{
-		entity.boundingBox.center += entity.velocity * dt;
-
-		auto min = entity.boundingBox.center - entity.boundingBox.halfSize;
-		auto max = entity.boundingBox.center + entity.boundingBox.halfSize;
-
-		glm::ivec3 imin = glm::floor(min);
-		glm::ivec3 imax = glm::ceil(max);
-
-		std::vector<glm::vec3> blockCollisionCandidates;
-		for (int x = imin.x; x <= imax.x; x++) {
-			for (int y = imin.y; y <= imax.y; y++) {
-				for (int z = imin.z; z <= imax.z; z++) {
-					if (terrain.getBlock(x, y, z) > 0) {
-						blockCollisionCandidates.push_back(glm::vec3(x, y, z));
-					}
-				}
-			}
-		}
-
-		std::sort(blockCollisionCandidates.begin(), blockCollisionCandidates.end(),
-		[&](const glm::vec3& a, const glm::vec3& b) -> bool
-		{
-			return getDistanceToBlockCenter(entity, a) < getDistanceToBlockCenter(entity, b);
-		});
-		resolveEntityTerrainCollisions(entity, blockCollisionCandidates);
 	}
 
 	void Game::render()
@@ -300,7 +199,7 @@ namespace yamc
 		auto perspectiveMatrix = glm::perspective(glm::radians(55.0f), (float)windowWidth / (float)windowHeight, 0.1f, 1000.0f);
 		auto viewMatrix = camera.getViewMatrix();
 
-		renderer.renderTerrain(perspectiveMatrix, viewMatrix, terrain);
+		renderer.renderTerrain(perspectiveMatrix, viewMatrix, world.getTerrain());
 		if (currentBlockSelection.isSelected) {
 			renderer.renderCubeOutline(perspectiveMatrix, viewMatrix, (glm::vec3)currentBlockSelection.coordinate + glm::vec3(0.5f, 0.5f, 0.5f));
 		}
@@ -314,6 +213,9 @@ namespace yamc
 
 		auto pos = player.boundingBox.center;
 		renderer.renderText(guiProjectionMatrix, "X:" + std::to_string(pos.x) + ", Y:" + std::to_string(pos.y) + ", Z:" + std::to_string(pos.z), glm::vec3(1, 1, 1), glm::vec2(10, 30), 2);
+
+		int chunksCount = world.getTerrain().getChunks().size();
+		renderer.renderText(guiProjectionMatrix, "CHUNKS IN MEMORY:" + std::to_string(chunksCount), glm::vec3(1, 1, 1), glm::vec2(10, 50), 2);
 
 		renderer.renderCross(guiProjectionMatrix, glm::vec2(windowWidth / 2, windowHeight / 2));
 	}

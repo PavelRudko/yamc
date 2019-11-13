@@ -5,33 +5,13 @@
 #include "Shader.h"
 #include "Camera.h"
 #include "Texture.h"
-#include "Terrain.h"
+#include "World.h"
 #include "Renderer.h"
 #include "Mesh.h"
 #include <GLFW/glfw3.h>
 
 namespace yamc
 {
-	struct AABB
-	{
-		glm::vec3 center;
-		glm::vec3 halfSize;
-	};
-
-	struct Entity
-	{
-		AABB boundingBox;
-		glm::vec3 velocity;
-		bool isGrounded;
-	};
-
-	struct BlockSelection
-	{
-		bool isSelected;
-		glm::ivec3 coordinate;
-		glm::ivec3 normal;
-	};
-
 	class Game
 	{
 	public:
@@ -50,9 +30,9 @@ namespace yamc
 		int windowHeight;
 		int fps;
 		
+		World world;
+		Entity& player;
 		Camera camera;
-		Entity player;
-		Terrain terrain;
 		Renderer renderer;
 		BlockSelection currentBlockSelection;
 		
@@ -65,7 +45,6 @@ namespace yamc
 		BlockSelection findBlockSelection(const glm::vec3& start, const glm::vec3& direction, float maxDistance) const;
 		void updateMouseInput(float dt);
 		void updateMoveKeys(float dt);
-		void updateEntityPosition(Entity& entity, float dt);
 	};
 }
 

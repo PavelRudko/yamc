@@ -94,7 +94,7 @@ namespace yamc
 
 		for (const auto& pair : terrain.getChunks()) {
 			uint64_t key = pair.first;
-			auto chunkOffset = Terrain::getChunkOffset(key);
+			auto chunkOffset = getChunkOffset(key);
 
 			glm::vec3 offset(chunkOffset.x * (float)Chunk::MaxWidth, 0, chunkOffset.y * (float)Chunk::MaxLength);
 

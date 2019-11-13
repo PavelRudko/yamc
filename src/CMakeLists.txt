@@ -9,6 +9,7 @@ set(YAMC_SOURCE_FILES
     Terrain.cpp
     Renderer.cpp
     Mesh.cpp
+    World.cpp
 )
 
 set(YAMC_HEADER_FILES
@@ -20,6 +21,7 @@ set(YAMC_HEADER_FILES
     Terrain.h
     Renderer.h
     Mesh.h
+    World.h
 )
 
 set(YAMC_SHADERS
