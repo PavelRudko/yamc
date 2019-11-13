@@ -129,7 +129,7 @@ namespace yamc
 	{
 	}
 
-	bool Terrain::findBlock(Chunk** outChunk, uint32_t& localX, uint32_t& localZ, int x, int y, int z) const
+	bool Terrain::findBlock(Chunk** outChunk, uint32_t& localX, uint32_t& localZ, uint64_t& chunkKey, int x, int y, int z) const
 	{
 		if (y < 0 || y >= Chunk::MaxHeight) {
 			return false;
@@ -138,8 +138,8 @@ namespace yamc
 		int32_t chunkX = getChunkIndex(x, Chunk::MaxWidth);
 		int32_t chunkZ = getChunkIndex(z, Chunk::MaxLength);
 
-		uint64_t key = pack(chunkX, chunkZ);
-		auto chunk = chunks.find(key);
+		chunkKey = pack(chunkX, chunkZ);
+		auto chunk = chunks.find(chunkKey);
 		if (chunk == chunks.end()) {
 			return false;
 		}
@@ -153,7 +153,8 @@ namespace yamc
 	{
 		Chunk* chunk = nullptr;
 		uint32_t localX, localZ;
-		if (!findBlock(&chunk, localX, localZ, x, y, z)) {
+		uint64_t chunkKey;
+		if (!findBlock(&chunk, localX, localZ, chunkKey, x, y, z)) {
 			return 0;
 		}
 
@@ -164,12 +165,15 @@ namespace yamc
 	{
 		Chunk* chunk = nullptr;
 		uint32_t localX, localZ;
-		if (!findBlock(&chunk, localX, localZ, x, y, z)) {
+		uint64_t chunkKey;
+		if (!findBlock(&chunk, localX, localZ, chunkKey, x, y, z)) {
 			return;
 		}
 
 		chunk->setBlock(localX, y, localZ, id);
 		chunk->update();
+
+		dirtyChunkKeys.insert(chunkKey);
 	}
 
 	const std::unordered_map<uint64_t, Chunk*>& Terrain::getChunks() const
@@ -180,6 +184,16 @@ namespace yamc
 	std::unordered_map<uint64_t, Chunk*>& Terrain::getChunks()
 	{
 		return chunks;
+	}
+
+	const std::set<uint64_t>& Terrain::getDirtyChunkKeys() const
+	{
+		return dirtyChunkKeys;
+	}
+
+	std::set<uint64_t>& Terrain::getDirtyChunkKeys()
+	{
+		return dirtyChunkKeys;
 	}
 
 	Terrain::~Terrain()

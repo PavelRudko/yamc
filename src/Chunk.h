@@ -22,6 +22,8 @@ namespace yamc
 		void update();
 		uint32_t getBlock(uint32_t x, uint32_t y, uint32_t z) const;
 		void setBlock(uint32_t x, uint32_t y, uint32_t z, uint32_t value);
+		const void* getData() const;
+		void* getData();
 
 		~Chunk();
 

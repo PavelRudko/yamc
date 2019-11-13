@@ -173,6 +173,16 @@ namespace yamc
 		blocks[x][y][z] = value;
 	}
 
+	const void* Chunk::getData() const
+	{
+		return &blocks[0][0][0];
+	}
+
+	void* Chunk::getData()
+	{
+		return &blocks[0][0][0];
+	}
+
 	Chunk::~Chunk()
 	{
 		if (vaoID > 0) {

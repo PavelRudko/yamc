@@ -54,12 +54,16 @@ namespace yamc
 		Terrain terrain;
 		std::vector<Entity*> trackedEntities;
 		int seed;
+		std::string directoryName;
 
 		void updateEntityPosition(Entity* entity, float dt);
 		void loadSurroundingChunks(uint32_t radius);
 		void loadChunk(int offsetX, int offsetZ);
 		void unloadDistantChunks(uint32_t remainingRadius);
 		void pushEntityToTheTop(Entity* entity) const;
+		void writeChunkToFile(const std::string& path, const Chunk* chunk) const;
+		std::string getChunkPath(uint64_t key) const;
+		void ensureWorldDirectoryExists() const;
 	};
 }
 

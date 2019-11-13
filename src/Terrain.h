@@ -2,6 +2,7 @@
 #define YAMC_TERRAIN_H
 
 #include <unordered_map>
+#include <set>
 #include <stdint.h>
 #include "Chunk.h"
 
@@ -20,11 +21,14 @@ namespace yamc
 		void setBlock(int x, int y, int z, uint32_t id);
 		const std::unordered_map<uint64_t, Chunk*>& getChunks() const;
 		std::unordered_map<uint64_t, Chunk*>& getChunks();
+		const std::set<uint64_t>& getDirtyChunkKeys() const;
+		std::set<uint64_t>& getDirtyChunkKeys();
 		~Terrain();
 
 	private:
 		std::unordered_map<uint64_t, Chunk*> chunks;
-		bool findBlock(Chunk** chunk, uint32_t& localX, uint32_t& localY, int x, int y, int z) const;
+		std::set<uint64_t> dirtyChunkKeys;
+		bool findBlock(Chunk** chunk, uint32_t& localX, uint32_t& localY, uint64_t& chunkKey, int x, int y, int z) const;
 	};
 }
 

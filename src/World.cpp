@@ -1,5 +1,7 @@
 #include "World.h"
 #include <algorithm>
+#include <filesystem>
+#include <string>
 
 namespace yamc
 {
@@ -77,8 +79,11 @@ namespace yamc
 	}
 
 	World::World(const std::string& name, int seed) :
-		seed(seed)
+		seed(seed),
+		directoryName("worlds/" + name)
 	{
+		ensureWorldDirectoryExists();
+
 		player.boundingBox.center = glm::vec3(0, 0, 0);
 		player.boundingBox.halfSize = glm::vec3(0.4f, 0.9f, 0.4f);
 		player.velocity = glm::vec3(0, 0, 0);
@@ -162,9 +167,19 @@ namespace yamc
 	{
 		std::unordered_map<uint64_t, Chunk*>& chunks = terrain.getChunks();
 		auto chunk = new Chunk();
-		fillChunk(chunk, offsetX, offsetZ, seed);
-		chunks[getChunkKey(offsetX, offsetZ)] = chunk;
+		uint64_t chunkKey = getChunkKey(offsetX, offsetZ);
+
+		FILE* file = fopen(getChunkPath(chunkKey).c_str(), "rb");
+		if (file) {
+			fread(chunk->getData(), sizeof(uint32_t), Chunk::MaxHeight * Chunk::MaxLength * Chunk::MaxWidth, file);
+			fclose(file);
+		}
+		else {
+			fillChunk(chunk, offsetX, offsetZ, seed);
+		}
+		
 		chunk->update();
+		chunks[chunkKey] = chunk;
 	}
 
 	void World::unloadDistantChunks(uint32_t remainingRadius)
@@ -174,26 +189,17 @@ namespace yamc
 		auto boundariesZ = getMinMaxChunkOffsets(playerCenter.z, remainingRadius, Chunk::MaxLength);
 
 		std::unordered_map<uint64_t, Chunk*>& chunks = terrain.getChunks();
-		/*std::vector<uint64_t> chunksToUnload;
-		for (const auto& pair : chunks) {
-			auto offset = getChunkOffset(pair.first);
-			if (offset[0] < boundariesX[0] || offset[0] > boundariesX[1] || 
-				offset[1] < boundariesZ[0] || offset[1] > boundariesZ[1]) {
-				chunksToUnload.push_back(pair.first);
-			}
-		}
-
-		for (uint64_t key : chunksToUnload) {
-			auto chunk = chunks[key];
-			chunks.erase(key);
-			delete chunk;
-		}*/
+		std::set<uint64_t>& dirtyChunkKeys = terrain.getDirtyChunkKeys();
 
 		for (auto it = chunks.begin(); it != chunks.end();) {
 			auto offset = getChunkOffset(it->first);
 			if (offset[0] < boundariesX[0] || offset[0] > boundariesX[1] ||
 				offset[1] < boundariesZ[0] || offset[1] > boundariesZ[1]) {
 				auto chunk = it->second;
+				if (dirtyChunkKeys.count(it->first) > 0) {
+					writeChunkToFile(getChunkPath(it->first), chunk);
+				}
+
 				it = chunks.erase(it);
 				delete chunk;
 			}
@@ -201,8 +207,6 @@ namespace yamc
 				it++;
 			}
 		}
-		
-		;
 	}
 
 	void World::pushEntityToTheTop(Entity* entity) const
@@ -224,6 +228,30 @@ namespace yamc
 		}
 
 		entity->boundingBox.center.y = maxY + entity->boundingBox.halfSize.y + 0.0001f;
+	}
+
+	void World::writeChunkToFile(const std::string& path, const Chunk* chunk) const
+	{
+		FILE* file = fopen(path.c_str(), "wb");
+		fwrite(chunk->getData(), sizeof(uint32_t), Chunk::MaxHeight * Chunk::MaxLength * Chunk::MaxWidth, file);
+		fclose(file);
+	}
+
+	std::string World::getChunkPath(uint64_t key) const
+	{
+		return directoryName + "/" + std::to_string(key) + ".cnk";
+	}
+
+	void World::ensureWorldDirectoryExists() const
+	{
+		std::string worldsRootDirectory("worlds");
+		if (!std::filesystem::is_directory(worldsRootDirectory) || !std::filesystem::exists(worldsRootDirectory)) {
+			std::filesystem::create_directory(worldsRootDirectory);
+		}
+
+		if (!std::filesystem::is_directory(directoryName) || !std::filesystem::exists(directoryName)) {
+			std::filesystem::create_directory(directoryName);
+		}
 	}
 
 	const Terrain& World::getTerrain() const
