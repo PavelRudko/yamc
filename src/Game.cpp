@@ -133,8 +133,11 @@ namespace yamc
 					AABB blockBoundingBox;
 					blockBoundingBox.center = (glm::vec3)block + glm::vec3(0.5f, 0.5f, 0.5f);
 					blockBoundingBox.halfSize = glm::vec3(0.5f, 0.5f, 0.5f);
-					if (!hasIntersection(player.boundingBox, blockBoundingBox)) {
-						world.getTerrain().setBlock(block.x, block.y, block.z, 3);
+
+					auto item = inventory.getHotbarItem(inventory.getSelectedHotbarSlot());
+
+					if (!hasIntersection(player.boundingBox, blockBoundingBox) && item) {
+						world.getTerrain().setBlock(block.x, block.y, block.z, item->id);
 					}
 				}
 			}
@@ -241,6 +244,11 @@ namespace yamc
 		windowWidth = width;
 		windowHeight = height;
 		glViewport(0, 0, width, height);
+	}
+
+	void Game::onScroll(double delta)
+	{
+		inventory.scrollHotbar(delta < 0 ? 1 : -1);
 	}
 
 	void Game::onExit()

@@ -92,7 +92,7 @@ namespace yamc
 		glBindTexture(GL_TEXTURE_2D, atlasTexture.getID());
 
 		int mvpLocation = glGetUniformLocation(defaultShader.getID(), "mvp");
-		int textureOffsetLocation = glGetUniformLocation(uiShader.getID(), "textureOffset");
+		int textureOffsetLocation = glGetUniformLocation(defaultShader.getID(), "textureOffset");
 
 		glUniform2f(textureOffsetLocation, 0, 0);
 
@@ -128,7 +128,8 @@ namespace yamc
 		renderColoredQuad(projectionMatrix, { 0.0, 0.0, 0.0, 0.5 }, offset, glm::vec2(hotbarWidth, hotbarHeight));
 
 		for (int i = 0; i < Inventory::MaxHotbarItems; i++) {
-			renderTile(projectionMatrix, 1023, offset, scale);
+			auto color = i == inventory.getSelectedHotbarSlot() ? glm::vec3(1, 1, 1) : glm::vec3(0.7, 0.7, 0.7);
+			renderTile(projectionMatrix, 1023, color, offset, scale);
 
 			auto item = inventory.getHotbarItem(i);
 			if (item) {
@@ -140,8 +141,8 @@ namespace yamc
 				auto mvp = projectionMatrix * offsetMatrix * rotationMatrix * scaleMatrix;
 
 				defaultShader.use();
-				int projectionMatrixLocation = glGetUniformLocation(uiShader.getID(), "mvp");
-				int textureOffsetLocation = glGetUniformLocation(uiShader.getID(), "textureOffset");
+				int projectionMatrixLocation = glGetUniformLocation(defaultShader.getID(), "mvp");
+				int textureOffsetLocation = glGetUniformLocation(defaultShader.getID(), "textureOffset");
 				glUniformMatrix4fv(projectionMatrixLocation, 1, false, glm::value_ptr(mvp));
 				glBindTexture(GL_TEXTURE_2D, atlasTexture.getID());
 				glBindVertexArray(blockMesh.getVAO());
@@ -166,7 +167,7 @@ namespace yamc
 		}
 	}
 
-	void Renderer::renderTile(const glm::mat4& projectionMatrix, uint32_t id, const glm::vec2& offset, uint32_t scale) const
+	void Renderer::renderTile(const glm::mat4& projectionMatrix, uint32_t id, const glm::vec3& color, const glm::vec2& offset, uint32_t scale) const
 	{
 		auto scaleMatrix = glm::scale(glm::mat4(1), glm::vec3(scale * atlasTexture.getTileWidth(), scale * atlasTexture.getTileHeight(), scale));
 		glm::vec3 offsetVector(offset.x, offset.y, 0);
@@ -185,7 +186,7 @@ namespace yamc
 
 		glUniformMatrix4fv(projectionMatrixLocation, 1, false, glm::value_ptr(mvp));
 		glUniform2fv(textureOffsetLocation, 1, glm::value_ptr(textureOffset));
-		glUniform3f(colorLocation, 1, 1, 1);
+		glUniform3f(colorLocation, color.r, color.g, color.b);
 		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(6 * sizeof(uint32_t)));
 
 		glBindVertexArray(0);

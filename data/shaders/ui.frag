@@ -13,5 +13,5 @@ void main()
     if(textureColor.r == 1.0 && textureColor.b == 1.0 && textureColor.g == 0.0) {
 	    discard;
 	}
-    out_color = vec4(textureColor.xyz, 1);
+    out_color = vec4(textureColor.xyz * color, 1);
 }

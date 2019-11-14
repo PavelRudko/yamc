@@ -22,6 +22,7 @@ namespace yamc
 		void render();
 		void setFPS(int value);
 		void onWindowResize(int width, int height);
+		void onScroll(double delta);
 		void onExit();
 		~Game();
 

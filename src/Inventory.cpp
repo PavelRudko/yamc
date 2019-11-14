@@ -2,7 +2,8 @@
 
 namespace yamc
 {
-	Inventory::Inventory()
+	Inventory::Inventory() :
+		selectedHotbarSlot(0)
 	{
 		memset(items, 0, sizeof(items));
 		for (int i = 0; i < MaxHotbarItems; i++) {
@@ -58,5 +59,17 @@ namespace yamc
 		return &items[hotbarItems[slotIndex]];
 	}
 
+	uint32_t Inventory::getSelectedHotbarSlot() const
+	{
+		return selectedHotbarSlot;
+	}
+
+	void Inventory::scrollHotbar(int delta)
+	{
+		int index = delta + selectedHotbarSlot;
+		if (index >= 0 && index < MaxHotbarItems) {
+			selectedHotbarSlot = index;
+		}
+	}
 
 }

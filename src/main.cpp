@@ -14,6 +14,12 @@ void windowSizeCallback(GLFWwindow* window, int width, int height)
 	game->onWindowResize(width, height);
 }
 
+void scrollCallback(GLFWwindow* window, double xoffset, double yoffset)
+{
+	auto game = (Game*)glfwGetWindowUserPointer(window);
+	game->onScroll(yoffset);
+}
+
 void run(GLFWwindow* window)
 {
 	glfwSwapInterval(0);
@@ -21,6 +27,7 @@ void run(GLFWwindow* window)
 	Game game(window);
 	glfwSetWindowUserPointer(window, &game);
 	glfwSetFramebufferSizeCallback(window, windowSizeCallback);
+	glfwSetScrollCallback(window, scrollCallback);
 
 	long long maxFPS = 1000;
 	long long minFrameNanoseconds = 1000000000 / maxFPS;

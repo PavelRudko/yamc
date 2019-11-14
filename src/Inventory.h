@@ -33,9 +33,13 @@ namespace yamc
 		InventoryItem* getHotbarItem(uint32_t slotIndex);
 		const InventoryItem* getHotbarItem(uint32_t slotIndex) const;
 
+		uint32_t getSelectedHotbarSlot() const;
+		void scrollHotbar(int delta);
+
 	private:
 		InventoryItem items[MaxItems];
 		uint32_t hotbarItems[MaxHotbarItems];
+		uint32_t selectedHotbarSlot;
 	};
 }
 

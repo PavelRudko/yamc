@@ -41,7 +41,7 @@ namespace yamc
 		void renderCross(const glm::mat4& projectionMatrix, const glm::vec2& center) const;
 		void renderTerrain(const glm::mat4& projectionMatrix, const glm::mat4& viewMatrix, const Terrain& terrain) const;
 		void renderInventoryHotbar(const glm::mat4& projectionMatrix, const glm::vec2& center, const Inventory& inventory) const;
-		void renderTile(const glm::mat4& projectionMatrix, uint32_t id, const glm::vec2& offset, uint32_t scale) const;
+		void renderTile(const glm::mat4& projectionMatrix, uint32_t id, const glm::vec3& color, const glm::vec2& offset, uint32_t scale) const;
 		void renderColoredQuad(const glm::mat4& projectionMatrix, const glm::vec4& color, const glm::vec2& offset, const glm::vec2& size) const;
 		~Renderer();
 
