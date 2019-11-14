@@ -5,6 +5,7 @@
 #include "Shader.h"
 #include "Mesh.h"
 #include "Terrain.h"
+#include "Inventory.h"
 #include <glm/glm.hpp>
 
 namespace yamc
@@ -15,14 +16,19 @@ namespace yamc
 		static constexpr uint32_t FontCharactersPerRow = 16;
 		static constexpr uint32_t FontRowCount = 8;
 		static constexpr uint32_t FontCharacterOffset = 1;
+
+		static constexpr uint32_t AtlasTilesPerRow = 32;
+		static constexpr uint32_t AtlasRowCount = 32;
+
 		static constexpr char* FontBitmapPath = "data/images/font.png";
-		static constexpr char* FontVertexShaderPath = "data/shaders/font.vert";
-		static constexpr char* FontFragmentShaderPath = "data/shaders/font.frag";
+		static constexpr char* AtlasPath = "data/images/atlas.png";
+
+		static constexpr char* UIVertexShaderPath = "data/shaders/ui.vert";
+		static constexpr char* UIFragmentShaderPath = "data/shaders/ui.frag";
 		
 	    static constexpr char* ColorVertexShaderPath = "data/shaders/color.vert";
 		static constexpr char* ColorFragmentShaderPath = "data/shaders/color.frag";
 
-		static constexpr char* AtlasPath = "data/images/atlas.png";
 		static constexpr char* DefaultVertexShaderPath = "data/shaders/default.vert";
 		static constexpr char* DefaultFragmentShaderPath = "data/shaders/default.frag";
 
@@ -34,24 +40,26 @@ namespace yamc
 		void renderCubeOutline(const glm::mat4& projectionMatrix, const glm::mat4& viewMatrix, const glm::vec3& center) const;
 		void renderCross(const glm::mat4& projectionMatrix, const glm::vec2& center) const;
 		void renderTerrain(const glm::mat4& projectionMatrix, const glm::mat4& viewMatrix, const Terrain& terrain) const;
+		void renderInventoryHotbar(const glm::mat4& projectionMatrix, const glm::vec2& center, const Inventory& inventory) const;
+		void renderTile(const glm::mat4& projectionMatrix, uint32_t id, const glm::vec2& offset, uint32_t scale) const;
+		void renderColoredQuad(const glm::mat4& projectionMatrix, const glm::vec4& color, const glm::vec2& offset, const glm::vec2& size) const;
 		~Renderer();
 
 	private:
-		Texture fontTexture;
-		Shader fontShader;
-		Mesh fontCharacterMesh;
-		uint32_t fontCharacterWidth;
-		uint32_t fontCharacterHeight;
-
+		Shader uiShader;
 		Shader colorShader;
-		Mesh outlineMesh;
-
 		Shader defaultShader;
-		Texture atlasTexture;
 
-		void initFont();
+		AtlasTexture fontTexture;
+		AtlasTexture atlasTexture;
+		
+		Mesh uiMesh;
+		Mesh outlineMesh;
+		Mesh blockMesh;
+
+		void initUIMesh();
 		void initOutlineMesh();
-		glm::vec2 getFontTextureOffset(uint8_t character) const;
+		void initBlockMesh();
 	};
 }
 

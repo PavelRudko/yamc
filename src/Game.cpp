@@ -36,6 +36,13 @@ namespace yamc
 
 		camera.setPosition(player.boundingBox.center + glm::vec3(0, 0.6f, 0));
 		currentBlockSelection = findBlockSelection(camera.getPosition(), camera.getLookDirection(), 4.0f);
+
+		inventory.setItem(0, 1);
+		inventory.setItem(1, 2);
+		inventory.setItem(2, 3);
+		inventory.setHotbarItem(0, 0);
+		inventory.setHotbarItem(1, 1);
+		inventory.setHotbarItem(2, 2);
 	}
 
 	int getMinAxis(const glm::vec3& dir)
@@ -127,7 +134,7 @@ namespace yamc
 					blockBoundingBox.center = (glm::vec3)block + glm::vec3(0.5f, 0.5f, 0.5f);
 					blockBoundingBox.halfSize = glm::vec3(0.5f, 0.5f, 0.5f);
 					if (!hasIntersection(player.boundingBox, blockBoundingBox)) {
-						world.getTerrain().setBlock(block.x, block.y, block.z, 1);
+						world.getTerrain().setBlock(block.x, block.y, block.z, 3);
 					}
 				}
 			}
@@ -208,7 +215,7 @@ namespace yamc
 		glDisable(GL_CULL_FACE);
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		auto guiProjectionMatrix = glm::ortho(0.0f, (float)windowWidth, (float)windowHeight, 0.0f, 0.0f, 1000.0f);
+		auto guiProjectionMatrix = glm::ortho(0.0f, (float)windowWidth, (float)windowHeight, 0.0f, -1000.0f, 1000.0f);
 		renderer.renderText(guiProjectionMatrix, "FPS:" + std::to_string(fps), glm::vec3(1, 1, 1),  glm::vec2(10, 10), 2);
 
 		auto pos = player.boundingBox.center;
@@ -218,6 +225,10 @@ namespace yamc
 		renderer.renderText(guiProjectionMatrix, "CHUNKS IN MEMORY:" + std::to_string(chunksCount), glm::vec3(1, 1, 1), glm::vec2(10, 50), 2);
 
 		renderer.renderCross(guiProjectionMatrix, glm::vec2(windowWidth / 2, windowHeight / 2));
+
+		glEnable(GL_CULL_FACE);
+		glFrontFace(GL_CW);
+		renderer.renderInventoryHotbar(guiProjectionMatrix, glm::vec2(windowWidth / 2, windowHeight - 50), inventory);
 	}
 
 	void Game::setFPS(int value)

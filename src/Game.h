@@ -36,6 +36,7 @@ namespace yamc
 		Camera camera;
 		Renderer renderer;
 		BlockSelection currentBlockSelection;
+		Inventory inventory;
 		
 		bool isCursorLocked;
 		bool wasLeftMouseButtonPressed;

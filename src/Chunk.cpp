@@ -42,51 +42,6 @@ namespace yamc
 
 	void Chunk::update()
 	{
-		static int atlasPixelWidth = 512;
-		static int atlasPixelHeight = 512;
-		static int blockPixelWidth = 16;
-		static int blockPixelHeight = 16;
-		static int atlasBlockWidth = atlasPixelWidth / blockPixelWidth;
-
-		static int atlasIndicesByType[3][3] = {
-			{1023, 1023, 1023},
-			{2, 2, 2},
-		    {1, 2, 0}
-		};
-
-		static glm::vec3 faceVertices[6][4] =
-		{
-			{ {-1, 1, 1}, {1, 1, 1}, {1, 1, -1}, {-1, 1, -1} }, //top
-			{ {-1, -1, -1}, {1, -1, -1}, {1, -1, 1}, {-1, -1, 1} }, //bottom
-			{ {-1, -1, 1}, {1, -1, 1}, {1, 1, 1}, {-1, 1, 1} }, //front
-			{ {1, -1, -1}, {-1, -1, -1}, {-1, 1, -1}, {1, 1, -1} }, //back
-			{ {1, -1, 1}, {1, -1, -1}, {1, 1, -1}, {1, 1, 1} }, //right
-			{ {-1, -1, -1}, {-1, -1, 1}, {-1, 1, 1}, {-1, 1, -1} } //left
-		};
-
-		static glm::ivec3 faceNormals[6] =
-		{
-			{0, 1, 0}, //top
-		    {0, -1, 0}, //bottom
-		    {0, 0, 1}, //front
-		    {0, 0, -1}, //back
-		    {1, 0, 0}, //right
-		    {-1, 0, 0} //left
-		};
-
-		static float faceIlluminance[6] =
-		{
-			1.0f,
-			0.1f,
-			0.5f,
-			0.8f,
-			0.7f,
-			0.4f
-		};
-
-		static float blockWidth = 1.0f;
-		static float blockHalfWidth = blockWidth / 2.0f;
-
 		std::vector<glm::vec4> positions;
 		std::vector<glm::vec2> uvs;
 		std::vector<uint32_t> indices;
@@ -96,47 +51,17 @@ namespace yamc
 				for (int z = 0; z < MaxLength; z++) {
 					uint32_t id = blocks[x][y][z];
 					if (id > 0) {
-						int* atlasIndices = id < sizeof(atlasIndicesByType) ? atlasIndicesByType[id] : atlasIndicesByType[0];
 
 						glm::vec3 center(x, y, z);
-						center *= blockWidth;
-						center += glm::vec3(blockHalfWidth, blockHalfWidth, blockHalfWidth);
+						center *= BlockWidth;
+						center += glm::vec3(BlockHalfWidth, BlockHalfWidth, BlockHalfWidth);
 
 						for (int f = 0; f < 6; f++) {
-							if (isFaceVisible(x, y, z, faceNormals[f])) {
-								uint32_t baseIndex = positions.size();
-								float illuminance = faceIlluminance[f];
-
-								for (int i = 0; i < 4; i++) {
-									auto position = glm::vec3(center + faceVertices[f][i] * blockHalfWidth);
-									positions.push_back(glm::vec4(position, illuminance));
-								}
-
-								indices.push_back(baseIndex + 0);
-								indices.push_back(baseIndex + 1);
-								indices.push_back(baseIndex + 2);
-								indices.push_back(baseIndex + 0);
-								indices.push_back(baseIndex + 2);
-								indices.push_back(baseIndex + 3);
-
-								int atlasIndex = atlasIndices[(std::min)(f, 2)];
-								float uvMinX = (atlasIndex % atlasBlockWidth) * blockPixelWidth;
-								float uvMinY = (atlasIndex / atlasBlockWidth) * blockPixelHeight;
-								float uvMaxX = uvMinX + blockPixelWidth;
-								float uvMaxY = uvMinY + blockPixelHeight;
-								uvMinX /= atlasPixelWidth;
-								uvMinY /= atlasPixelHeight;
-								uvMaxX /= atlasPixelWidth;
-								uvMaxY /= atlasPixelHeight;
-
-								uvs.push_back({ uvMinX, uvMaxY });
-								uvs.push_back({ uvMaxX, uvMaxY });
-								uvs.push_back({ uvMaxX, uvMinY });
-								uvs.push_back({ uvMinX, uvMinY });
+							if (isFaceVisible(x, y, z, BlockFaceNormals[f])) {
+								addBlockFace(positions, uvs, indices, center, id, f);
 							}
 						}
 					}
-					
 				}
 			}
 		}

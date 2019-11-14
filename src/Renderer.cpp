@@ -7,14 +7,15 @@
 namespace yamc
 {
 	Renderer::Renderer() :
-		fontTexture(FontBitmapPath),
-		atlasTexture(AtlasPath),
-		fontShader(FontVertexShaderPath, FontFragmentShaderPath),
+		fontTexture(FontBitmapPath, FontCharactersPerRow, FontRowCount),
+		atlasTexture(AtlasPath, AtlasTilesPerRow, AtlasRowCount),
+		uiShader(UIVertexShaderPath, UIFragmentShaderPath),
 		colorShader(ColorVertexShaderPath, ColorFragmentShaderPath),
 		defaultShader(DefaultVertexShaderPath, DefaultFragmentShaderPath)
 	{
-		initFont();
+		initUIMesh();
 		initOutlineMesh();
+		initBlockMesh();
 	}
 
 	void Renderer::renderText(const glm::mat4& projectionMatrix, const std::string& text, const glm::vec3& color, const glm::vec2& offset, uint32_t scale) const
@@ -22,17 +23,17 @@ namespace yamc
 		auto scaleMatrix = glm::scale(glm::mat4(1), glm::vec3(scale, scale, scale));
 		glm::vec3 characterOffsetVector(offset.x, offset.y, 0);
 	
-		fontShader.use();
-		int projectionMatrixLocation = glGetUniformLocation(fontShader.getID(), "mvp");
-		int textureOffsetLocation = glGetUniformLocation(fontShader.getID(), "textureOffset");
-		int colorLocation = glGetUniformLocation(fontShader.getID(), "color");
+		uiShader.use();
+		int projectionMatrixLocation = glGetUniformLocation(uiShader.getID(), "mvp");
+		int textureOffsetLocation = glGetUniformLocation(uiShader.getID(), "textureOffset");
+		int colorLocation = glGetUniformLocation(uiShader.getID(), "color");
 
 		glBindTexture(GL_TEXTURE_2D, fontTexture.getID());
-		glBindVertexArray(fontCharacterMesh.getVAO());
+		glBindVertexArray(uiMesh.getVAO());
 
 		for (int i = 0; i < text.length(); i++) {
-			auto textureOffset = getFontTextureOffset(text[i]);
-			characterOffsetVector.x += (FontCharacterOffset + fontCharacterWidth) * scale;
+			auto textureOffset = fontTexture.getTileOffset(text[i]);
+			characterOffsetVector.x += (FontCharacterOffset + fontTexture.getTileWidth()) * scale;
 			auto offsetMatrix = glm::translate(glm::mat4(1), characterOffsetVector);
 			auto mvp = projectionMatrix * offsetMatrix * scaleMatrix;
 
@@ -91,6 +92,9 @@ namespace yamc
 		glBindTexture(GL_TEXTURE_2D, atlasTexture.getID());
 
 		int mvpLocation = glGetUniformLocation(defaultShader.getID(), "mvp");
+		int textureOffsetLocation = glGetUniformLocation(uiShader.getID(), "textureOffset");
+
+		glUniform2f(textureOffsetLocation, 0, 0);
 
 		for (const auto& pair : terrain.getChunks()) {
 			uint64_t key = pair.first;
@@ -113,32 +117,141 @@ namespace yamc
 		glUseProgram(0);
 	}
 
-	void Renderer::initFont()
+	void Renderer::renderInventoryHotbar(const glm::mat4& projectionMatrix, const glm::vec2& center, const Inventory& inventory) const
 	{
-		fontCharacterWidth = fontTexture.getWidth() / FontCharactersPerRow;
-		fontCharacterHeight = fontTexture.getHeight() / FontRowCount;
-		float characterUVHeight = fontCharacterHeight / (float)fontTexture.getHeight();
-		float characterUVWidth = fontCharacterWidth / (float)fontTexture.getWidth();
+		uint32_t scale = 4;
+		float hotbarWidth = atlasTexture.getTileWidth() * inventory.MaxHotbarItems * scale;
+		float hotbarHeight = atlasTexture.getTileHeight() * scale;
+
+		glm::vec2 offset = { center.x - hotbarWidth / 2, center.y - hotbarHeight / 2 };
+
+		renderColoredQuad(projectionMatrix, { 0.0, 0.0, 0.0, 0.5 }, offset, glm::vec2(hotbarWidth, hotbarHeight));
+
+		for (int i = 0; i < Inventory::MaxHotbarItems; i++) {
+			renderTile(projectionMatrix, 1023, offset, scale);
+
+			auto item = inventory.getHotbarItem(i);
+			if (item) {
+				auto blockScale = glm::vec3(scale * 6, scale * 6, scale * 6);
+				blockScale.y *= -1;
+				auto offsetMatrix = glm::translate(glm::mat4(1), glm::vec3(offset.x + atlasTexture.getTileWidth() * scale / 2, offset.y + atlasTexture.getTileHeight() * scale / 2, 0));
+				auto rotationMatrix = glm::rotate(glm::mat4(1), glm::radians(45.0f), glm::vec3(1, 0, 0)) * glm::rotate(glm::mat4(1), glm::radians(45.0f), glm::vec3(0, 1, 0));
+				auto scaleMatrix = glm::scale(glm::mat4(1), blockScale);
+				auto mvp = projectionMatrix * offsetMatrix * rotationMatrix * scaleMatrix;
+
+				defaultShader.use();
+				int projectionMatrixLocation = glGetUniformLocation(uiShader.getID(), "mvp");
+				int textureOffsetLocation = glGetUniformLocation(uiShader.getID(), "textureOffset");
+				glUniformMatrix4fv(projectionMatrixLocation, 1, false, glm::value_ptr(mvp));
+				glBindTexture(GL_TEXTURE_2D, atlasTexture.getID());
+				glBindVertexArray(blockMesh.getVAO());
+
+				auto atlasIndices = BlockAtlasIndicesByType[item->id];
+
+				//top
+				auto textureOffset = atlasTexture.getTileOffset(atlasIndices[0]);
+				glUniform2f(textureOffsetLocation, textureOffset.x, textureOffset.y);
+				glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+				//sides
+				textureOffset = atlasTexture.getTileOffset(atlasIndices[2]);
+				glUniform2f(textureOffsetLocation, textureOffset.x, textureOffset.y);
+				glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (void*)(18 * sizeof(uint32_t)));
+
+				glBindVertexArray(0);
+				glUseProgram(0);
+			}
+
+			offset.x += atlasTexture.getTileWidth() * scale;
+		}
+	}
+
+	void Renderer::renderTile(const glm::mat4& projectionMatrix, uint32_t id, const glm::vec2& offset, uint32_t scale) const
+	{
+		auto scaleMatrix = glm::scale(glm::mat4(1), glm::vec3(scale * atlasTexture.getTileWidth(), scale * atlasTexture.getTileHeight(), scale));
+		glm::vec3 offsetVector(offset.x, offset.y, 0);
+
+		uiShader.use();
+		int projectionMatrixLocation = glGetUniformLocation(uiShader.getID(), "mvp");
+		int textureOffsetLocation = glGetUniformLocation(uiShader.getID(), "textureOffset");
+		int colorLocation = glGetUniformLocation(uiShader.getID(), "color");
+
+		glBindTexture(GL_TEXTURE_2D, atlasTexture.getID());
+		glBindVertexArray(uiMesh.getVAO());
+
+		auto textureOffset = atlasTexture.getTileOffset(id);
+		auto offsetMatrix = glm::translate(glm::mat4(1), offsetVector);
+		auto mvp = projectionMatrix * offsetMatrix * scaleMatrix;
+
+		glUniformMatrix4fv(projectionMatrixLocation, 1, false, glm::value_ptr(mvp));
+		glUniform2fv(textureOffsetLocation, 1, glm::value_ptr(textureOffset));
+		glUniform3f(colorLocation, 1, 1, 1);
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(6 * sizeof(uint32_t)));
+
+		glBindVertexArray(0);
+		glUseProgram(0);
+	}
+
+	void Renderer::renderColoredQuad(const glm::mat4& projectionMatrix, const glm::vec4& color, const glm::vec2& offset, const glm::vec2& size) const
+	{
+		glm::vec3 offsetVector(offset.x, offset.y, 0);
+		auto scaleMatrix = glm::scale(glm::mat4(1), glm::vec3(size.x, size.y, 1));
+
+		colorShader.use();
+		int projectionMatrixLocation = glGetUniformLocation(colorShader.getID(), "mvp");
+		int colorLocation = glGetUniformLocation(colorShader.getID(), "color");
+
+		glBindVertexArray(uiMesh.getVAO());
+
+		auto offsetMatrix = glm::translate(glm::mat4(1), offsetVector);
+		auto mvp = projectionMatrix * offsetMatrix * scaleMatrix;
+
+		glUniformMatrix4fv(projectionMatrixLocation, 1, false, glm::value_ptr(mvp));
+		glUniform4fv(colorLocation, 1, glm::value_ptr(color));
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(6 * sizeof(uint32_t)));
+
+		glBindVertexArray(0);
+		glUseProgram(0);
+	}
+
+	void Renderer::initUIMesh()
+	{
+		float characterUVHeight = fontTexture.getTileHeight() / (float)fontTexture.getHeight();
+		float characterUVWidth = fontTexture.getTileWidth() / (float)fontTexture.getWidth();
+
+		float tileUVHeight = atlasTexture.getTileHeight() / (float)atlasTexture.getHeight();
+		float tileUVWidth = atlasTexture.getTileWidth() / (float)atlasTexture.getWidth();
 
 		std::vector<glm::vec3> positions = {
 			{0, 0, 0},
-			{0, fontCharacterHeight, 0},
-			{fontCharacterWidth, fontCharacterHeight, 0},
-			{fontCharacterWidth, 0, 0}
+			{0, fontTexture.getTileHeight(), 0},
+			{fontTexture.getTileWidth(), fontTexture.getTileHeight(), 0},
+			{fontTexture.getTileWidth(), 0, 0},
+
+			{0, 0, 0},
+			{0, 1, 0},
+			{1, 1, 0},
+			{1, 0, 0}
 		};
 
 		std::vector<glm::vec2> uvs = {
 			{0, 0},
 			{0, characterUVHeight},
 			{characterUVWidth, characterUVHeight},
-			{characterUVWidth, 0}
+			{characterUVWidth, 0},
+
+			{0, 0},
+			{0, tileUVHeight},
+			{tileUVWidth, tileUVHeight},
+			{tileUVWidth, 0}
 		};
 
 		std::vector<uint32_t> indices = {
-			0, 2, 1, 0, 3, 2
+			0, 2, 1, 0, 3, 2, //font
+			4, 6, 5, 4, 7, 6 //atlas
 		};
 
-		fontCharacterMesh.setData(positions, uvs, indices);
+		uiMesh.setData(positions, uvs, indices);
 	}
 
 	void Renderer::initOutlineMesh()
@@ -177,11 +290,17 @@ namespace yamc
 		outlineMesh.setData(outlinePositions, outlineIndices);
 	}
 
-	glm::vec2 Renderer::getFontTextureOffset(uint8_t character) const
+	void Renderer::initBlockMesh()
 	{
-		uint32_t row = ((uint32_t)character) / FontCharactersPerRow;
-		uint32_t column = ((uint32_t)character) % FontCharactersPerRow;
-		return glm::vec2(column / (float)FontCharactersPerRow, row / (float)FontRowCount);
+		std::vector<glm::vec4> positions;
+		std::vector<glm::vec2> uvs;
+		std::vector<uint32_t> indices;
+
+		for (int i = 0; i < 6; i++) {
+			addBlockFace(positions, uvs, indices, { 0, 0, 0 }, 0, i);
+		}
+
+		blockMesh.setData(positions, uvs, indices);
 	}
 
 	Renderer::~Renderer()

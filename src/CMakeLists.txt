@@ -10,6 +10,7 @@ set(YAMC_SOURCE_FILES
     Renderer.cpp
     Mesh.cpp
     World.cpp
+    Inventory.cpp
 )
 
 set(YAMC_HEADER_FILES
@@ -22,13 +23,14 @@ set(YAMC_HEADER_FILES
     Renderer.h
     Mesh.h
     World.h
+    Inventory.h
 )
 
 set(YAMC_SHADERS
     ../data/shaders/default.vert
     ../data/shaders/default.frag
-    ../data/shaders/font.vert
-    ../data/shaders/font.frag
+    ../data/shaders/ui.vert
+    ../data/shaders/ui.frag
     ../data/shaders/color.vert
     ../data/shaders/color.frag
 )

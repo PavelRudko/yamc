@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <glm/glm.hpp>
+#include "Mesh.h"
 
 namespace yamc
 {

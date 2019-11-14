@@ -67,4 +67,50 @@ namespace yamc
 		}
 	}
 
+	AtlasTexture::AtlasTexture(const std::string& path, uint32_t tilesPerRow, uint32_t rowCount) :
+		Texture(path),
+		tilesPerRow(tilesPerRow),
+		rowCount(rowCount)
+	{
+		tileWidth = getWidth() / tilesPerRow;
+		tileHeight = getHeight() / rowCount;
+	}
+
+	AtlasTexture::AtlasTexture(AtlasTexture&& other) noexcept : 
+		Texture(std::move(other)),
+		tilesPerRow(other.tilesPerRow),
+		rowCount(other.rowCount),
+		tileWidth(other.tileWidth),
+		tileHeight(other.tileHeight)
+	{
+		
+	}
+
+	uint32_t AtlasTexture::getTilesPerRow() const
+	{
+		return tilesPerRow;
+	}
+
+	uint32_t AtlasTexture::getRowCount() const
+	{
+		return rowCount;
+	}
+
+	uint32_t AtlasTexture::getTileWidth() const
+	{
+		return tileWidth;
+	}
+
+	uint32_t AtlasTexture::getTileHeight() const
+	{
+		return tileHeight;
+	}
+
+	glm::vec2 AtlasTexture::getTileOffset(uint32_t index) const
+	{
+		uint32_t row = ((uint32_t)index) / tilesPerRow;
+		uint32_t column = ((uint32_t)index) % tilesPerRow;
+		return glm::vec2(column / (float)tilesPerRow, row / (float)rowCount);
+	}
+
 }

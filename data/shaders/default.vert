@@ -1,6 +1,7 @@
 #version 410 core
 
 uniform mat4 mvp;
+uniform vec2 textureOffset;
 
 layout (location = 0) in vec4 position;
 layout (location = 1) in vec2 in_uv;
@@ -12,5 +13,5 @@ void main()
 {
     gl_Position = mvp * vec4(position.xyz, 1.0);
 	illuminance = position.w;
-	out_uv = in_uv;
+	out_uv = in_uv + textureOffset;
 }

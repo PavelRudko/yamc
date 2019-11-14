@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <string>
+#include <glm/glm.hpp>
 
 namespace yamc
 {
@@ -24,6 +25,25 @@ namespace yamc
 		uint32_t id;
 		uint32_t width;
 		uint32_t height;
+	};
+
+	class AtlasTexture : public Texture
+	{
+	public:
+		AtlasTexture(const std::string& path, uint32_t tilesPerRow, uint32_t rowCount);
+		AtlasTexture(AtlasTexture&&) noexcept;
+
+		uint32_t getTilesPerRow() const;
+		uint32_t getRowCount() const;
+		uint32_t getTileWidth() const;
+		uint32_t getTileHeight() const;
+		glm::vec2 getTileOffset(uint32_t index) const;
+
+	private:
+		uint32_t tilesPerRow;
+		uint32_t rowCount;
+		uint32_t tileWidth;
+		uint32_t tileHeight;
 	};
 }
 
