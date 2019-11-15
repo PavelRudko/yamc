@@ -4,6 +4,7 @@
 #include <fstream>
 #include <streambuf>
 #include <stdexcept>
+#include <glm/gtc/type_ptr.hpp>
 
 namespace yamc
 {
@@ -61,7 +62,11 @@ namespace yamc
 		return id;
 	}
 
-	Shader::Shader(const std::string& vertexShaderPath, const std::string& fragmentShaderPath)
+	Shader::Shader(const std::string& vertexShaderPath, const std::string& fragmentShaderPath) :
+		mvpUniformLocation(0),
+		textureOffsetUniformLocation(0),
+		textureScaleUniformLocation(0),
+		colorUniformLocation(0)
 	{
 		uint32_t vertexShaderID = compileShader(vertexShaderPath, GL_VERTEX_SHADER);
 		uint32_t fragmentShaderID = compileShader(fragmentShaderPath, GL_FRAGMENT_SHADER);
@@ -70,9 +75,15 @@ namespace yamc
 
 		glDeleteShader(vertexShaderID);
 		glDeleteShader(fragmentShaderID);
+
+		setupUniformLocations();
 	}
 
-	Shader::Shader(Shader&& other) noexcept
+	Shader::Shader(Shader&& other) noexcept :
+		mvpUniformLocation(other.mvpUniformLocation),
+		textureOffsetUniformLocation(other.textureOffsetUniformLocation),
+		textureScaleUniformLocation(other.textureScaleUniformLocation),
+		colorUniformLocation(other.colorUniformLocation)
 	{
 		programID = other.programID;
 		other.programID = 0;
@@ -86,6 +97,54 @@ namespace yamc
 	void Shader::use() const
 	{
 		glUseProgram(programID);
+	}
+
+	void Shader::setMVP(const glm::mat4& mvp) const
+	{
+		if (mvpUniformLocation < 0) {
+			return;
+		}
+		glUniformMatrix4fv(mvpUniformLocation, 1, GL_FALSE, glm::value_ptr(mvp));
+	}
+
+	void Shader::setColor(const glm::vec3& color) const
+	{
+		if (colorUniformLocation < 0) {
+			return;
+		}
+		glUniform3fv(colorUniformLocation, 1, glm::value_ptr(color));
+	}
+
+	void Shader::setColor(const glm::vec4& color) const
+	{
+		if (colorUniformLocation < 0) {
+			return;
+		}
+		glUniform4fv(colorUniformLocation, 1, glm::value_ptr(color));
+	}
+
+	void Shader::setTextureOffset(const glm::vec2& offset) const
+	{
+		if (textureOffsetUniformLocation < 0) {
+			return;
+		}
+		glUniform2fv(textureOffsetUniformLocation, 1, glm::value_ptr(offset));
+	}
+
+	void Shader::setTextureScale(const glm::vec2& scale) const
+	{
+		if (textureScaleUniformLocation < 0) {
+			return;
+		}
+		glUniform2fv(textureScaleUniformLocation, 1, glm::value_ptr(scale));
+	}
+
+	void Shader::setupUniformLocations()
+	{
+		mvpUniformLocation = glGetUniformLocation(programID, "mvp");
+		textureOffsetUniformLocation = glGetUniformLocation(programID, "textureOffset");
+		textureScaleUniformLocation = glGetUniformLocation(programID, "textureScale");
+		colorUniformLocation = glGetUniformLocation(programID, "color");
 	}
 
 	Shader::~Shader()

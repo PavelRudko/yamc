@@ -38,6 +38,7 @@ namespace yamc
 		uint32_t getTileWidth() const;
 		uint32_t getTileHeight() const;
 		glm::vec2 getTileOffset(uint32_t index) const;
+		glm::vec2 getUVScale() const;
 
 	private:
 		uint32_t tilesPerRow;

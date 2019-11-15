@@ -113,4 +113,9 @@ namespace yamc
 		return glm::vec2(column / (float)tilesPerRow, row / (float)rowCount);
 	}
 
+	glm::vec2 AtlasTexture::getUVScale() const
+	{
+		return glm::vec2((float)tileWidth / getWidth(), (float)tileHeight / getHeight());
+	}
+
 }

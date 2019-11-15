@@ -218,19 +218,15 @@ namespace yamc
 		glDisable(GL_CULL_FACE);
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		glFrontFace(GL_CW);
 		auto guiProjectionMatrix = glm::ortho(0.0f, (float)windowWidth, (float)windowHeight, 0.0f, -1000.0f, 1000.0f);
 		renderer.renderText(guiProjectionMatrix, "FPS:" + std::to_string(fps), glm::vec3(1, 1, 1),  glm::vec2(10, 10), 2);
 
 		auto pos = player.boundingBox.center;
 		renderer.renderText(guiProjectionMatrix, "X:" + std::to_string(pos.x) + ", Y:" + std::to_string(pos.y) + ", Z:" + std::to_string(pos.z), glm::vec3(1, 1, 1), glm::vec2(10, 30), 2);
-
 		int chunksCount = world.getTerrain().getChunks().size();
 		renderer.renderText(guiProjectionMatrix, "CHUNKS IN MEMORY:" + std::to_string(chunksCount), glm::vec3(1, 1, 1), glm::vec2(10, 50), 2);
-
 		renderer.renderCross(guiProjectionMatrix, glm::vec2(windowWidth / 2, windowHeight / 2));
-
-		glEnable(GL_CULL_FACE);
-		glFrontFace(GL_CW);
 		renderer.renderInventoryHotbar(guiProjectionMatrix, glm::vec2(windowWidth / 2, windowHeight - 50), inventory);
 	}
 

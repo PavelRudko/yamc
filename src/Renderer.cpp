@@ -13,34 +13,30 @@ namespace yamc
 		colorShader(ColorVertexShaderPath, ColorFragmentShaderPath),
 		defaultShader(DefaultVertexShaderPath, DefaultFragmentShaderPath)
 	{
-		initUIMesh();
+		initQuadMesh();
 		initOutlineMesh();
 		initBlockMesh();
 	}
 
 	void Renderer::renderText(const glm::mat4& projectionMatrix, const std::string& text, const glm::vec3& color, const glm::vec2& offset, uint32_t scale) const
 	{
-		auto scaleMatrix = glm::scale(glm::mat4(1), glm::vec3(scale, scale, scale));
+		auto scaleMatrix = glm::scale(glm::mat4(1), glm::vec3(scale * fontTexture.getTileWidth(), scale * fontTexture.getTileHeight(), 1));
 		glm::vec3 characterOffsetVector(offset.x, offset.y, 0);
 	
 		uiShader.use();
-		int projectionMatrixLocation = glGetUniformLocation(uiShader.getID(), "mvp");
-		int textureOffsetLocation = glGetUniformLocation(uiShader.getID(), "textureOffset");
-		int colorLocation = glGetUniformLocation(uiShader.getID(), "color");
 
 		glBindTexture(GL_TEXTURE_2D, fontTexture.getID());
-		glBindVertexArray(uiMesh.getVAO());
+		glBindVertexArray(quadMesh.getVAO());
 
 		for (int i = 0; i < text.length(); i++) {
-			auto textureOffset = fontTexture.getTileOffset(text[i]);
 			characterOffsetVector.x += (FontCharacterOffset + fontTexture.getTileWidth()) * scale;
 			auto offsetMatrix = glm::translate(glm::mat4(1), characterOffsetVector);
-			auto mvp = projectionMatrix * offsetMatrix * scaleMatrix;
 
-			glUniformMatrix4fv(projectionMatrixLocation, 1, false, glm::value_ptr(mvp));
-			glUniform2fv(textureOffsetLocation, 1, glm::value_ptr(textureOffset));
-			glUniform3fv(colorLocation, 1, glm::value_ptr(color));
-			glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+			uiShader.setMVP(projectionMatrix * offsetMatrix * scaleMatrix);
+			uiShader.setTextureOffset(fontTexture.getTileOffset(text[i]));
+			uiShader.setColor(color);
+			uiShader.setTextureScale(fontTexture.getUVScale());
+			glDrawElements(GL_TRIANGLES, quadMesh.getIndicesCount(), GL_UNSIGNED_INT, 0);
 		}
 		
 		glBindVertexArray(0);
@@ -50,14 +46,11 @@ namespace yamc
 	void Renderer::renderCubeOutline(const glm::mat4& projectionMatrix, const glm::mat4& viewMatrix, const glm::vec3& center) const
 	{
 		glUseProgram(colorShader.getID());
-		int mvpLocation = glGetUniformLocation(colorShader.getID(), "mvp");
-		int colorLocation = glGetUniformLocation(colorShader.getID(), "color");
 
 		auto modelMatrix = glm::translate(glm::identity<glm::mat4>(), center);
-		auto mvp = projectionMatrix * viewMatrix * modelMatrix;
 		glm::vec4 outlineColor(0.6f, 0.6f, 0.6f, 1.0f);
-		glUniformMatrix4fv(mvpLocation, 1, false, glm::value_ptr(mvp));
-		glUniform4fv(colorLocation, 1, glm::value_ptr(outlineColor));
+		colorShader.setMVP(projectionMatrix * viewMatrix * modelMatrix);
+		colorShader.setColor(outlineColor);
 		glLineWidth(3);
 
 		glBindVertexArray(outlineMesh.getVAO());
@@ -70,13 +63,12 @@ namespace yamc
 	void Renderer::renderCross(const glm::mat4& projectionMatrix, const glm::vec2& center) const
 	{
 		glUseProgram(colorShader.getID());
-		int mvpLocation = glGetUniformLocation(colorShader.getID(), "mvp");
-		int colorLocation = glGetUniformLocation(colorShader.getID(), "color");
+
 		auto modelMatrix = glm::translate(glm::identity<glm::mat4>(), glm::vec3(center.x, center.y, 0));
 		auto mvp = projectionMatrix * modelMatrix * glm::scale(glm::identity<glm::mat4>(), glm::vec3(26, 26, 26));
-		glm::vec4 outlineColor(0.6f, 0.6f, 0.6f, 0.6f);
-		glUniformMatrix4fv(mvpLocation, 1, false, glm::value_ptr(mvp));
-		glUniform4fv(colorLocation, 1, glm::value_ptr(outlineColor));
+		glm::vec4 crossColor(0.6f, 0.6f, 0.6f, 0.6f);
+		colorShader.setMVP(projectionMatrix * modelMatrix * glm::scale(glm::identity<glm::mat4>(), glm::vec3(26, 26, 26)));
+		colorShader.setColor(crossColor);
 		glLineWidth(4);
 
 		glBindVertexArray(outlineMesh.getVAO());
@@ -91,10 +83,7 @@ namespace yamc
 		defaultShader.use();
 		glBindTexture(GL_TEXTURE_2D, atlasTexture.getID());
 
-		int mvpLocation = glGetUniformLocation(defaultShader.getID(), "mvp");
-		int textureOffsetLocation = glGetUniformLocation(defaultShader.getID(), "textureOffset");
-
-		glUniform2f(textureOffsetLocation, 0, 0);
+		defaultShader.setTextureOffset(glm::vec2(0, 0));
 
 		for (const auto& pair : terrain.getChunks()) {
 			uint64_t key = pair.first;
@@ -105,8 +94,7 @@ namespace yamc
 			auto chunk = pair.second;
 			if (chunk->getIndicesCount() > 0) {
 				auto modelMatrix = glm::translate(glm::identity<glm::mat4>(), offset);
-				auto mvp = projectionMatrix * viewMatrix * modelMatrix;
-				glUniformMatrix4fv(mvpLocation, 1, false, glm::value_ptr(mvp));
+				defaultShader.setMVP(projectionMatrix * viewMatrix * modelMatrix);
 
 				glBindVertexArray(chunk->getVAO());
 				glDrawElements(GL_TRIANGLES, chunk->getIndicesCount(), GL_UNSIGNED_INT, 0);
@@ -133,34 +121,8 @@ namespace yamc
 
 			auto item = inventory.getHotbarItem(i);
 			if (item) {
-				auto blockScale = glm::vec3(scale * 6, scale * 6, scale * 6);
-				blockScale.y *= -1;
-				auto offsetMatrix = glm::translate(glm::mat4(1), glm::vec3(offset.x + atlasTexture.getTileWidth() * scale / 2, offset.y + atlasTexture.getTileHeight() * scale / 2, 0));
-				auto rotationMatrix = glm::rotate(glm::mat4(1), glm::radians(45.0f), glm::vec3(1, 0, 0)) * glm::rotate(glm::mat4(1), glm::radians(45.0f), glm::vec3(0, 1, 0));
-				auto scaleMatrix = glm::scale(glm::mat4(1), blockScale);
-				auto mvp = projectionMatrix * offsetMatrix * rotationMatrix * scaleMatrix;
-
-				defaultShader.use();
-				int projectionMatrixLocation = glGetUniformLocation(defaultShader.getID(), "mvp");
-				int textureOffsetLocation = glGetUniformLocation(defaultShader.getID(), "textureOffset");
-				glUniformMatrix4fv(projectionMatrixLocation, 1, false, glm::value_ptr(mvp));
-				glBindTexture(GL_TEXTURE_2D, atlasTexture.getID());
-				glBindVertexArray(blockMesh.getVAO());
-
-				auto atlasIndices = BlockAtlasIndicesByType[item->id];
-
-				//top
-				auto textureOffset = atlasTexture.getTileOffset(atlasIndices[0]);
-				glUniform2f(textureOffsetLocation, textureOffset.x, textureOffset.y);
-				glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-
-				//sides
-				textureOffset = atlasTexture.getTileOffset(atlasIndices[2]);
-				glUniform2f(textureOffsetLocation, textureOffset.x, textureOffset.y);
-				glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (void*)(18 * sizeof(uint32_t)));
-
-				glBindVertexArray(0);
-				glUseProgram(0);
+				glm::vec2 blockIconCenter(offset.x + atlasTexture.getTileWidth() * scale / 2, offset.y + atlasTexture.getTileHeight() * scale / 2);
+				renderBlockIcon(projectionMatrix, item->id, blockIconCenter, scale);
 			}
 
 			offset.x += atlasTexture.getTileWidth() * scale;
@@ -173,21 +135,18 @@ namespace yamc
 		glm::vec3 offsetVector(offset.x, offset.y, 0);
 
 		uiShader.use();
-		int projectionMatrixLocation = glGetUniformLocation(uiShader.getID(), "mvp");
-		int textureOffsetLocation = glGetUniformLocation(uiShader.getID(), "textureOffset");
-		int colorLocation = glGetUniformLocation(uiShader.getID(), "color");
 
 		glBindTexture(GL_TEXTURE_2D, atlasTexture.getID());
-		glBindVertexArray(uiMesh.getVAO());
+		glBindVertexArray(quadMesh.getVAO());
 
 		auto textureOffset = atlasTexture.getTileOffset(id);
 		auto offsetMatrix = glm::translate(glm::mat4(1), offsetVector);
-		auto mvp = projectionMatrix * offsetMatrix * scaleMatrix;
 
-		glUniformMatrix4fv(projectionMatrixLocation, 1, false, glm::value_ptr(mvp));
-		glUniform2fv(textureOffsetLocation, 1, glm::value_ptr(textureOffset));
-		glUniform3f(colorLocation, color.r, color.g, color.b);
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(6 * sizeof(uint32_t)));
+		uiShader.setMVP(projectionMatrix * offsetMatrix * scaleMatrix);
+		uiShader.setTextureOffset(textureOffset);
+		uiShader.setColor(color);
+		uiShader.setTextureScale(atlasTexture.getUVScale());
+		glDrawElements(GL_TRIANGLES, quadMesh.getIndicesCount(), GL_UNSIGNED_INT, 0);
 
 		glBindVertexArray(0);
 		glUseProgram(0);
@@ -199,36 +158,50 @@ namespace yamc
 		auto scaleMatrix = glm::scale(glm::mat4(1), glm::vec3(size.x, size.y, 1));
 
 		colorShader.use();
-		int projectionMatrixLocation = glGetUniformLocation(colorShader.getID(), "mvp");
-		int colorLocation = glGetUniformLocation(colorShader.getID(), "color");
 
-		glBindVertexArray(uiMesh.getVAO());
+		glBindVertexArray(quadMesh.getVAO());
 
 		auto offsetMatrix = glm::translate(glm::mat4(1), offsetVector);
 		auto mvp = projectionMatrix * offsetMatrix * scaleMatrix;
 
-		glUniformMatrix4fv(projectionMatrixLocation, 1, false, glm::value_ptr(mvp));
-		glUniform4fv(colorLocation, 1, glm::value_ptr(color));
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)(6 * sizeof(uint32_t)));
+		colorShader.setMVP(mvp);
+		colorShader.setColor(color);
+		glDrawElements(GL_TRIANGLES, quadMesh.getIndicesCount(), GL_UNSIGNED_INT, 0);
 
 		glBindVertexArray(0);
 		glUseProgram(0);
 	}
 
-	void Renderer::initUIMesh()
+	void Renderer::renderBlockIcon(const glm::mat4& projectionMatrix, uint32_t id, const glm::vec2& center, uint32_t scale) const
 	{
-		float characterUVHeight = fontTexture.getTileHeight() / (float)fontTexture.getHeight();
-		float characterUVWidth = fontTexture.getTileWidth() / (float)fontTexture.getWidth();
+		glm::vec3 scaleVector (scale * 6, scale * 6, scale * 6);
+		scaleVector.y *= -1;
+		auto offsetMatrix = glm::translate(glm::mat4(1), glm::vec3(center.x, center.y, 0));
+		auto rotationMatrix = glm::rotate(glm::mat4(1), glm::radians(45.0f), glm::vec3(1, 0, 0)) * glm::rotate(glm::mat4(1), glm::radians(45.0f), glm::vec3(0, 1, 0));
+		auto scaleMatrix = glm::scale(glm::mat4(1), scaleVector);
+		auto atlasIndices = BlockAtlasIndicesByType[id];
 
-		float tileUVHeight = atlasTexture.getTileHeight() / (float)atlasTexture.getHeight();
-		float tileUVWidth = atlasTexture.getTileWidth() / (float)atlasTexture.getWidth();
+		defaultShader.use();
 
+		defaultShader.setMVP(projectionMatrix * offsetMatrix * rotationMatrix * scaleMatrix);
+		glBindTexture(GL_TEXTURE_2D, atlasTexture.getID());
+		glBindVertexArray(blockMesh.getVAO());
+
+		//top
+		defaultShader.setTextureOffset(atlasTexture.getTileOffset(atlasIndices[0]));
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+		//sides
+		defaultShader.setTextureOffset(atlasTexture.getTileOffset(atlasIndices[2]));
+		glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, (void*)(18 * sizeof(uint32_t)));
+
+		glBindVertexArray(0);
+		glUseProgram(0);
+	}
+
+	void Renderer::initQuadMesh()
+	{
 		std::vector<glm::vec3> positions = {
-			{0, 0, 0},
-			{0, fontTexture.getTileHeight(), 0},
-			{fontTexture.getTileWidth(), fontTexture.getTileHeight(), 0},
-			{fontTexture.getTileWidth(), 0, 0},
-
 			{0, 0, 0},
 			{0, 1, 0},
 			{1, 1, 0},
@@ -237,22 +210,16 @@ namespace yamc
 
 		std::vector<glm::vec2> uvs = {
 			{0, 0},
-			{0, characterUVHeight},
-			{characterUVWidth, characterUVHeight},
-			{characterUVWidth, 0},
-
-			{0, 0},
-			{0, tileUVHeight},
-			{tileUVWidth, tileUVHeight},
-			{tileUVWidth, 0}
+			{0, 1},
+			{1, 1},
+			{1, 0},
 		};
 
 		std::vector<uint32_t> indices = {
-			0, 2, 1, 0, 3, 2, //font
-			4, 6, 5, 4, 7, 6 //atlas
+			0, 2, 1, 0, 3, 2
 		};
 
-		uiMesh.setData(positions, uvs, indices);
+		quadMesh.setData(positions, uvs, indices);
 	}
 
 	void Renderer::initOutlineMesh()

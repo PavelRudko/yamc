@@ -43,6 +43,7 @@ namespace yamc
 		void renderInventoryHotbar(const glm::mat4& projectionMatrix, const glm::vec2& center, const Inventory& inventory) const;
 		void renderTile(const glm::mat4& projectionMatrix, uint32_t id, const glm::vec3& color, const glm::vec2& offset, uint32_t scale) const;
 		void renderColoredQuad(const glm::mat4& projectionMatrix, const glm::vec4& color, const glm::vec2& offset, const glm::vec2& size) const;
+		void renderBlockIcon(const glm::mat4& projectionMatrix, uint32_t id, const glm::vec2& center, uint32_t scale) const;
 		~Renderer();
 
 	private:
@@ -53,11 +54,11 @@ namespace yamc
 		AtlasTexture fontTexture;
 		AtlasTexture atlasTexture;
 		
-		Mesh uiMesh;
+		Mesh quadMesh;
 		Mesh outlineMesh;
 		Mesh blockMesh;
 
-		void initUIMesh();
+		void initQuadMesh();
 		void initOutlineMesh();
 		void initBlockMesh();
 	};
