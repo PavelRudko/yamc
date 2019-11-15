@@ -29,15 +29,6 @@ namespace yamc
 		uint32_t indexBufferID;
 		uint32_t indicesCount;
 	};
-
-	const extern int BlockAtlasIndicesByType[4][3];
-	const extern glm::vec3 BlockFaceVertices[6][4];
-	const extern glm::ivec3 BlockFaceNormals[6];
-	const extern float BlockFaceIlluminance[6];
-	const extern float BlockWidth;
-	const extern float BlockHalfWidth;
-
-	void addBlockFace(std::vector<glm::vec4>& positions, std::vector<glm::vec2>& uvs, std::vector<uint32_t>& indices, const glm::vec3& center, uint32_t id, uint32_t face);
 }
 
 #endif

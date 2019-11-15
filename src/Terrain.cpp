@@ -171,9 +171,9 @@ namespace yamc
 		}
 
 		chunk->setBlock(localX, y, localZ, id);
-		chunk->update();
 
-		dirtyChunkKeys.insert(chunkKey);
+		chunkKeysToSave.insert(chunkKey);
+		chunkKeysToRebuild.insert(chunkKey);
 	}
 
 	const std::unordered_map<uint64_t, Chunk*>& Terrain::getChunks() const
@@ -186,14 +186,24 @@ namespace yamc
 		return chunks;
 	}
 
-	const std::set<uint64_t>& Terrain::getDirtyChunkKeys() const
+	const std::set<uint64_t>& Terrain::getChunkKeysToSave() const
 	{
-		return dirtyChunkKeys;
+		return chunkKeysToSave;
 	}
 
-	std::set<uint64_t>& Terrain::getDirtyChunkKeys()
+	std::set<uint64_t>& Terrain::getChunkKeysToSave()
 	{
-		return dirtyChunkKeys;
+		return chunkKeysToSave;
+	}
+
+	const std::set<uint64_t>& Terrain::getChunkKeysToRebuild() const
+	{
+		return chunkKeysToRebuild;
+	}
+
+	std::set<uint64_t>& Terrain::getChunkKeysToRebuild()
+	{
+		return chunkKeysToRebuild;
 	}
 
 	Terrain::~Terrain()

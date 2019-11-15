@@ -18,11 +18,10 @@ namespace yamc
 		Chunk(const Chunk&) = delete;
 		Chunk(Chunk&&) = delete;
 
-		uint32_t getVAO() const;
-		uint32_t getIndicesCount() const;
-		void update();
 		uint32_t getBlock(uint32_t x, uint32_t y, uint32_t z) const;
 		void setBlock(uint32_t x, uint32_t y, uint32_t z, uint32_t value);
+		const Mesh& getMesh() const;
+		Mesh& getMesh();
 		const void* getData() const;
 		void* getData();
 
@@ -30,10 +29,7 @@ namespace yamc
 
 	private:
 		uint32_t blocks[MaxWidth][MaxHeight][MaxLength];
-		uint32_t vaoID;
-		uint32_t vertexBufferID;
-		uint32_t indexBufferID;
-		uint32_t indicesCount;
+		Mesh mesh;
 
 		bool isFaceVisible(int x, int y, int z, const glm::ivec3& normal) const;
 	};

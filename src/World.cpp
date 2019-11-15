@@ -111,7 +111,7 @@ namespace yamc
 	void World::saveWorld()
 	{
 		auto chunks = terrain.getChunks();
-		for (uint64_t key : terrain.getDirtyChunkKeys()) {
+		for (uint64_t key : terrain.getChunkKeysToSave()) {
 			writeChunkToFile(getChunkPath(key), chunks[key]);
 		}
 	}
@@ -186,7 +186,7 @@ namespace yamc
 			fillChunk(chunk, offsetX, offsetZ, seed);
 		}
 		
-		chunk->update();
+		terrain.getChunkKeysToRebuild().insert(chunkKey);
 		chunks[chunkKey] = chunk;
 	}
 
@@ -197,7 +197,7 @@ namespace yamc
 		auto boundariesZ = getMinMaxChunkOffsets(playerCenter.z, remainingRadius, Chunk::MaxLength);
 
 		std::unordered_map<uint64_t, Chunk*>& chunks = terrain.getChunks();
-		std::set<uint64_t>& dirtyChunkKeys = terrain.getDirtyChunkKeys();
+		std::set<uint64_t>& dirtyChunkKeys = terrain.getChunkKeysToSave();
 
 		for (auto it = chunks.begin(); it != chunks.end();) {
 			auto offset = getChunkOffset(it->first);

@@ -6,6 +6,7 @@
 #include "Mesh.h"
 #include "Terrain.h"
 #include "Inventory.h"
+#include "MeshBuilder.h"
 #include <glm/glm.hpp>
 
 namespace yamc
@@ -44,6 +45,7 @@ namespace yamc
 		void renderTile(const glm::mat4& projectionMatrix, uint32_t id, const glm::vec3& color, const glm::vec2& offset, uint32_t scale) const;
 		void renderColoredQuad(const glm::mat4& projectionMatrix, const glm::vec4& color, const glm::vec2& offset, const glm::vec2& size) const;
 		void renderBlockIcon(const glm::mat4& projectionMatrix, uint32_t id, const glm::vec2& center, uint32_t scale) const;
+		const MeshBuilder& getMeshBuilder() const;
 		~Renderer();
 
 	private:
@@ -57,6 +59,8 @@ namespace yamc
 		Mesh quadMesh;
 		Mesh outlineMesh;
 		Mesh blockMesh;
+
+		MeshBuilder meshBuilder;
 
 		void initQuadMesh();
 		void initOutlineMesh();

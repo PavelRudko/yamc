@@ -198,8 +198,20 @@ namespace yamc
 		}
 	}
 
+	void Game::rebuildChunkMeshes()
+	{
+		auto& chunksToRebuild = world.getTerrain().getChunkKeysToRebuild();
+		for (uint64_t chunkKey : chunksToRebuild) {
+			//world.getTerrain().getChunks()[chunkKey]->update();
+			renderer.getMeshBuilder().rebuildChunk(world.getTerrain().getChunks()[chunkKey]);
+		}
+		chunksToRebuild.clear();
+	}
+
 	void Game::render()
 	{
+		rebuildChunkMeshes();
+
 		glClearColor(0.8f, 0.9f, 1.0f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glEnable(GL_DEPTH_TEST);

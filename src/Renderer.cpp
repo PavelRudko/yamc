@@ -11,7 +11,8 @@ namespace yamc
 		atlasTexture(AtlasPath, AtlasTilesPerRow, AtlasRowCount),
 		uiShader(UIVertexShaderPath, UIFragmentShaderPath),
 		colorShader(ColorVertexShaderPath, ColorFragmentShaderPath),
-		defaultShader(DefaultVertexShaderPath, DefaultFragmentShaderPath)
+		defaultShader(DefaultVertexShaderPath, DefaultFragmentShaderPath),
+		meshBuilder(atlasTexture)
 	{
 		initQuadMesh();
 		initOutlineMesh();
@@ -92,12 +93,13 @@ namespace yamc
 			glm::vec3 offset(chunkOffset.x * (float)Chunk::MaxWidth, 0, chunkOffset.y * (float)Chunk::MaxLength);
 
 			auto chunk = pair.second;
-			if (chunk->getIndicesCount() > 0) {
+			const Mesh& mesh = chunk->getMesh();
+			if (mesh.getIndicesCount() > 0) {
 				auto modelMatrix = glm::translate(glm::identity<glm::mat4>(), offset);
 				defaultShader.setMVP(projectionMatrix * viewMatrix * modelMatrix);
 
-				glBindVertexArray(chunk->getVAO());
-				glDrawElements(GL_TRIANGLES, chunk->getIndicesCount(), GL_UNSIGNED_INT, 0);
+				glBindVertexArray(mesh.getVAO());
+				glDrawElements(GL_TRIANGLES, mesh.getIndicesCount(), GL_UNSIGNED_INT, 0);
 				glBindVertexArray(0);
 			}
 		}
@@ -179,7 +181,7 @@ namespace yamc
 		auto offsetMatrix = glm::translate(glm::mat4(1), glm::vec3(center.x, center.y, 0));
 		auto rotationMatrix = glm::rotate(glm::mat4(1), glm::radians(45.0f), glm::vec3(1, 0, 0)) * glm::rotate(glm::mat4(1), glm::radians(45.0f), glm::vec3(0, 1, 0));
 		auto scaleMatrix = glm::scale(glm::mat4(1), scaleVector);
-		auto atlasIndices = BlockAtlasIndicesByType[id];
+		auto atlasIndices = MeshBuilder::BlockAtlasIndicesByType[id];
 
 		defaultShader.use();
 
@@ -197,6 +199,11 @@ namespace yamc
 
 		glBindVertexArray(0);
 		glUseProgram(0);
+	}
+
+	const MeshBuilder& Renderer::getMeshBuilder() const
+	{
+		return meshBuilder;
 	}
 
 	void Renderer::initQuadMesh()
@@ -264,9 +271,7 @@ namespace yamc
 		std::vector<glm::vec2> uvs;
 		std::vector<uint32_t> indices;
 
-		for (int i = 0; i < 6; i++) {
-			addBlockFace(positions, uvs, indices, { 0, 0, 0 }, 0, i);
-		}
+		meshBuilder.addCubeBlock(positions, uvs, indices, { 0, 0, 0 }, 0);
 
 		blockMesh.setData(positions, uvs, indices);
 	}

@@ -21,13 +21,16 @@ namespace yamc
 		void setBlock(int x, int y, int z, uint32_t id);
 		const std::unordered_map<uint64_t, Chunk*>& getChunks() const;
 		std::unordered_map<uint64_t, Chunk*>& getChunks();
-		const std::set<uint64_t>& getDirtyChunkKeys() const;
-		std::set<uint64_t>& getDirtyChunkKeys();
+		const std::set<uint64_t>& getChunkKeysToSave() const;
+		std::set<uint64_t>& getChunkKeysToSave();
+		const std::set<uint64_t>& getChunkKeysToRebuild() const;
+		std::set<uint64_t>& getChunkKeysToRebuild();
 		~Terrain();
 
 	private:
 		std::unordered_map<uint64_t, Chunk*> chunks;
-		std::set<uint64_t> dirtyChunkKeys;
+		std::set<uint64_t> chunkKeysToSave;
+		std::set<uint64_t> chunkKeysToRebuild;
 		bool findBlock(Chunk** chunk, uint32_t& localX, uint32_t& localY, uint64_t& chunkKey, int x, int y, int z) const;
 	};
 }

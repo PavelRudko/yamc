@@ -48,6 +48,7 @@ namespace yamc
 		BlockSelection findBlockSelection(const glm::vec3& start, const glm::vec3& direction, float maxDistance) const;
 		void updateMouseInput(float dt);
 		void updateMoveKeys(float dt);
+		void rebuildChunkMeshes();
 	};
 }
 
