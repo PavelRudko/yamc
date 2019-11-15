@@ -32,7 +32,7 @@ namespace yamc
 	private:
 		static constexpr uint32_t MinSurroundingChunksRadius = 1;
 		static constexpr uint32_t PurgeRemainingChunksRadius = 3;
-		static constexpr uint32_t MaxChunksInMemory = 25;
+		static constexpr uint32_t MaxChunksInMemory = 1500;
 
 	public:
 		World(const std::string& name, int seed);

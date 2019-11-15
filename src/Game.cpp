@@ -200,10 +200,11 @@ namespace yamc
 
 	void Game::rebuildChunkMeshes()
 	{
-		auto& chunksToRebuild = world.getTerrain().getChunkKeysToRebuild();
+		auto& terrain = world.getTerrain();
+		auto& chunksToRebuild = terrain.getChunkKeysToRebuild();
 		for (uint64_t chunkKey : chunksToRebuild) {
-			//world.getTerrain().getChunks()[chunkKey]->update();
-			renderer.getMeshBuilder().rebuildChunk(world.getTerrain().getChunks()[chunkKey]);
+			auto chunk = world.getTerrain().getChunks()[chunkKey];
+			renderer.getMeshBuilder().rebuildChunk(chunkKey, chunk, &terrain);
 		}
 		chunksToRebuild.clear();
 	}

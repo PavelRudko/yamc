@@ -173,7 +173,21 @@ namespace yamc
 		chunk->setBlock(localX, y, localZ, id);
 
 		chunkKeysToSave.insert(chunkKey);
+		
+		auto chunkOffset = getChunkOffset(chunkKey);
 		chunkKeysToRebuild.insert(chunkKey);
+		if (localX == 0) {
+			addToRebuildIfExists(chunkOffset[0] - 1, chunkOffset[1]);
+		}
+		if (localX == Chunk::MaxWidth - 1) {
+			addToRebuildIfExists(chunkOffset[0] + 1, chunkOffset[1]);
+		}
+		if (localZ == 0) {
+			addToRebuildIfExists(chunkOffset[0], chunkOffset[1] - 1);
+		}
+		if (localZ == Chunk::MaxLength - 1) {
+			addToRebuildIfExists(chunkOffset[0], chunkOffset[1] + 1);
+		}
 	}
 
 	const std::unordered_map<uint64_t, Chunk*>& Terrain::getChunks() const
@@ -204,6 +218,27 @@ namespace yamc
 	std::set<uint64_t>& Terrain::getChunkKeysToRebuild()
 	{
 		return chunkKeysToRebuild;
+	}
+
+	void Terrain::addToRebuildWithAdjacent(uint64_t key)
+	{
+		chunkKeysToRebuild.insert(key);
+		auto offset = getChunkOffset(key);
+		for (int x = -1; x <= 1; x++) {
+			for (int z = -1; z <= 1; z++) {
+				if (abs(x) != abs(z)) {
+					addToRebuildIfExists(offset[0] + x, offset[1] + z);
+				}
+			}
+		}
+	}
+
+	void Terrain::addToRebuildIfExists(int x, int z)
+	{
+		uint64_t key = getChunkKey(x, z);
+		if (chunks.find(key) != chunks.end()) {
+			chunkKeysToRebuild.insert(key);
+		}
 	}
 
 	Terrain::~Terrain()

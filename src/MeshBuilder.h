@@ -5,6 +5,7 @@
 #include <glm/glm.hpp>
 #include <vector>
 #include "Chunk.h"
+#include "Terrain.h"
 
 namespace yamc
 {
@@ -15,8 +16,15 @@ namespace yamc
 
 		MeshBuilder(const AtlasTexture& atlas);
 
-		void addCubeBlock(std::vector<glm::vec4>& positions, std::vector<glm::vec2>& uvs, std::vector<uint32_t>& indices, const glm::vec3& center, uint32_t id, uint32_t* surroundingBlocks = nullptr) const;
-		void rebuildChunk(Chunk* chunk) const;
+		void addCubeBlock(std::vector<glm::vec4>& positions, 
+			std::vector<glm::vec2>& uvs, 
+			std::vector<uint32_t>& indices, 
+			const glm::vec3 center, 
+			const glm::ivec3 worldCoordinate, 
+			uint32_t id, 
+			const Terrain* terrain = nullptr) const;
+
+		void rebuildChunk(uint64_t chunkKey, Chunk* chunk, const Terrain* terrain) const;
 
 	private:
 		static const glm::ivec3 BlockFaceNormals[6];

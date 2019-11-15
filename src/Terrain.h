@@ -25,6 +25,8 @@ namespace yamc
 		std::set<uint64_t>& getChunkKeysToSave();
 		const std::set<uint64_t>& getChunkKeysToRebuild() const;
 		std::set<uint64_t>& getChunkKeysToRebuild();
+		void addToRebuildWithAdjacent(uint64_t key);
+		void addToRebuildIfExists(int x, int z);
 		~Terrain();
 
 	private:

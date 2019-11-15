@@ -186,7 +186,7 @@ namespace yamc
 			fillChunk(chunk, offsetX, offsetZ, seed);
 		}
 		
-		terrain.getChunkKeysToRebuild().insert(chunkKey);
+		terrain.addToRebuildWithAdjacent(chunkKey);
 		chunks[chunkKey] = chunk;
 	}
 

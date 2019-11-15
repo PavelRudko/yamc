@@ -49,73 +49,91 @@ namespace yamc
 	{
 	}
 
-	void MeshBuilder::addCubeBlock(std::vector<glm::vec4>& positions, std::vector<glm::vec2>& uvs, std::vector<uint32_t>& indices, const glm::vec3& center, uint32_t id, uint32_t* surroundingBlocks) const
+	int calculateAO(int side1, int side2, int corner)
+	{
+		if (side1 && side2) {
+			return 0;
+		}
+		return 3 - (side1 + side2 + corner);
+	}
+
+	void MeshBuilder::addCubeBlock(std::vector<glm::vec4>& positions,
+		std::vector<glm::vec2>& uvs,
+		std::vector<uint32_t>& indices,
+		const glm::vec3 center,
+		const glm::ivec3 worldCoordinate,
+		uint32_t id,
+		const Terrain* terrain) const
 	{
 		for (int face = 0; face < 6; face++) {
-			if (surroundingBlocks == nullptr || surroundingBlocks[face] == 0) {
-				const int* atlasIndices = id < sizeof(BlockAtlasIndicesByType) ? BlockAtlasIndicesByType[id] : BlockAtlasIndicesByType[0];
-
-				uint32_t baseIndex = positions.size();
-				float illuminance = BlockFaceIlluminance[face];
-
-				for (int i = 0; i < 4; i++) {
-					auto position = glm::vec3(center + BlockFaceVertices[face][i] * BlockHalfWidth);
-					positions.push_back(glm::vec4(position, illuminance));
-				}
-
-				indices.push_back(baseIndex + 0);
-				indices.push_back(baseIndex + 1);
-				indices.push_back(baseIndex + 2);
-				indices.push_back(baseIndex + 0);
-				indices.push_back(baseIndex + 2);
-				indices.push_back(baseIndex + 3);
-
-				int atlasIndex = atlasIndices[(std::min)(face, 2)];
-				auto uvMin = atlas.getTileOffset(atlasIndex);
-				auto uvMax = uvMin + atlas.getUVScale();
-
-				uvs.push_back({ uvMin.x, uvMax.y });
-				uvs.push_back({ uvMax.x, uvMax.y });
-				uvs.push_back({ uvMax.x, uvMin.y });
-				uvs.push_back({ uvMin.x, uvMin.y });
+			auto normal = BlockFaceNormals[face];
+			auto adjuscentBlock = worldCoordinate + normal;
+			if (terrain != nullptr && (adjuscentBlock.y < 0 || terrain->getBlock(adjuscentBlock.x, adjuscentBlock.y, adjuscentBlock.z) != 0)) {
+				continue;
 			}
+
+			const int* atlasIndices = id < sizeof(BlockAtlasIndicesByType) ? BlockAtlasIndicesByType[id] : BlockAtlasIndicesByType[0];
+
+			uint32_t baseIndex = positions.size();
+			float illuminance = BlockFaceIlluminance[face];
+
+			for (int i = 0; i < 4; i++) {
+				auto vertexOffset = BlockFaceVertices[face][i];
+				float vertexIlluminance = illuminance;
+				if (terrain != nullptr) {
+					auto a1 = worldCoordinate + glm::ivec3(vertexOffset.x, vertexOffset.y, 0);
+					auto a2 = worldCoordinate + glm::ivec3(0, vertexOffset.y, vertexOffset.z);
+					auto aCorner = worldCoordinate + glm::ivec3(vertexOffset.x, vertexOffset.y, vertexOffset.z);
+					int side1 = terrain->getBlock(a1.x, a1.y, a1.z) != 0 ? 1 : 0;
+					int side2 = terrain->getBlock(a2.x, a2.y, a2.z) != 0 ? 1 : 0;
+					int corner = terrain->getBlock(aCorner.x, aCorner.y, aCorner.z) != 0 ? 1 : 0;
+					vertexIlluminance += calculateAO(side1, side2, corner) * 0.1f;
+					vertexIlluminance -= 0.3f;
+				}
+				
+				auto position = glm::vec3(center + BlockFaceVertices[face][i] * BlockHalfWidth);
+				positions.push_back(glm::vec4(position, vertexIlluminance));
+			}
+
+			indices.push_back(baseIndex + 0);
+			indices.push_back(baseIndex + 1);
+			indices.push_back(baseIndex + 2);
+			indices.push_back(baseIndex + 0);
+			indices.push_back(baseIndex + 2);
+			indices.push_back(baseIndex + 3);
+
+			int atlasIndex = atlasIndices[(std::min)(face, 2)];
+			auto uvMin = atlas.getTileOffset(atlasIndex);
+			auto uvMax = uvMin + atlas.getUVScale();
+
+			uvs.push_back({ uvMin.x, uvMax.y });
+			uvs.push_back({ uvMax.x, uvMax.y });
+			uvs.push_back({ uvMax.x, uvMin.y });
+			uvs.push_back({ uvMin.x, uvMin.y });
 		}
 	}
 
-	void MeshBuilder::rebuildChunk(Chunk* chunk) const
+	void MeshBuilder::rebuildChunk(uint64_t chunkKey, Chunk* chunk, const Terrain* terrain) const
 	{
-		static uint32_t surroundingBlocks[6];
+		auto chunkOffset = getChunkOffset(chunkKey);
 
-		std::vector<glm::vec4> positions;
-		std::vector<glm::vec2> uvs;
-		std::vector<uint32_t> indices;
+		static std::vector<glm::vec4> positions;
+		static std::vector<glm::vec2> uvs;
+		static std::vector<uint32_t> indices;
+
+		positions.clear();
+		uvs.clear();
+		indices.clear();
 
 		for (int x = 0; x < Chunk::MaxWidth; x++) {
 			for (int y = 0; y < Chunk::MaxHeight; y++) {
 				for (int z = 0; z < Chunk::MaxLength; z++) {
 					uint32_t id = chunk->getBlock(x, y, z);
 					if (id > 0) {
+						glm::ivec3 worldCoordinate(x + chunkOffset[0] * Chunk::MaxWidth, y, z + chunkOffset[1] * Chunk::MaxLength);
+						glm::vec3 center(x * BlockWidth + BlockHalfWidth, y * BlockWidth + BlockHalfWidth, z * BlockWidth + BlockHalfWidth);
 
-						for (int i = 0; i < 6; i++) {
-							auto coord = BlockFaceNormals[i];
-							coord.x += x;
-							coord.y += y;
-							coord.z += z;
-							if (coord.x >= 0 && coord.x < Chunk::MaxWidth &&
-								coord.y >= 0 && coord.y < Chunk::MaxHeight &&
-								coord.z >= 0 && coord.z < Chunk::MaxLength) {
-								surroundingBlocks[i] = chunk->getBlock(coord.x, coord.y, coord.z);
-							}
-							else {
-								surroundingBlocks[i] = 0;
-							}
-						}
-
-						glm::vec3 center(x, y, z);
-						center *= BlockWidth;
-						center += glm::vec3(BlockHalfWidth, BlockHalfWidth, BlockHalfWidth);
-
-						addCubeBlock(positions, uvs, indices, center, id, surroundingBlocks);
+						addCubeBlock(positions, uvs, indices, center, worldCoordinate, id, terrain);
 					}
 				}
 			}

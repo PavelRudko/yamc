@@ -271,7 +271,7 @@ namespace yamc
 		std::vector<glm::vec2> uvs;
 		std::vector<uint32_t> indices;
 
-		meshBuilder.addCubeBlock(positions, uvs, indices, { 0, 0, 0 }, 0);
+		meshBuilder.addCubeBlock(positions, uvs, indices, { 0, 0, 0 }, {0, 0, 0}, 0);
 
 		blockMesh.setData(positions, uvs, indices);
 	}
