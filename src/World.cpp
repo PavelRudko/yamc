@@ -49,9 +49,10 @@ namespace yamc
 		return true;
 	}
 
-	void resolveEntityTerrainCollisions(Entity* entity, const std::vector<glm::vec3>& potentialBlocks)
+	bool resolveEntityTerrainCollisions(Entity* entity, const std::vector<glm::vec3>& potentialBlocks)
 	{
 		static float bias = 0.00001f;
+		bool hasCollision = false;
 		entity->isGrounded = false;
 
 		for (auto block : potentialBlocks) {
@@ -62,6 +63,7 @@ namespace yamc
 			glm::vec3 normal;
 			float penetration = 0;
 			if (getContact(entity->boundingBox, blockBoundingBox, normal, penetration)) {
+				hasCollision = true;
 				entity->boundingBox.center += normal * (penetration + bias);
 				float velocityProjection = glm::dot(entity->velocity, normal);
 				entity->velocity -= normal * velocityProjection;
@@ -70,6 +72,8 @@ namespace yamc
 				}
 			}
 		}
+
+		return hasCollision;
 	}
 
 	float getDistanceToBlockCenter(const Entity* entity, const glm::vec3& block)
@@ -118,31 +122,43 @@ namespace yamc
 
 	void World::updateEntityPosition(Entity* entity, float dt)
 	{
-		entity->boundingBox.center += entity->velocity * dt;
+		static float maxStepLength = 0.5f;
 
-		auto min = entity->boundingBox.center - entity->boundingBox.halfSize;
-		auto max = entity->boundingBox.center + entity->boundingBox.halfSize;
+		auto originalPosition = entity->boundingBox.center;
+		auto direction = glm::normalize(entity->velocity);
+		auto delta = entity->velocity * dt;
+		auto deltaLength = glm::length(delta);
+		for (float distance = maxStepLength; distance < deltaLength + maxStepLength; distance += maxStepLength) {
+			float t = std::min(distance, deltaLength);
+			entity->boundingBox.center = originalPosition + direction * t;
 
-		glm::ivec3 imin = glm::floor(min);
-		glm::ivec3 imax = glm::ceil(max);
+			auto min = entity->boundingBox.center - entity->boundingBox.halfSize;
+			auto max = entity->boundingBox.center + entity->boundingBox.halfSize;
 
-		std::vector<glm::vec3> blockCollisionCandidates;
-		for (int x = imin.x; x <= imax.x; x++) {
-			for (int y = imin.y; y <= imax.y; y++) {
-				for (int z = imin.z; z <= imax.z; z++) {
-					if (getTerrain().getBlock(x, y, z) > 0) {
-						blockCollisionCandidates.push_back(glm::vec3(x, y, z));
+			glm::ivec3 imin = glm::floor(min);
+			glm::ivec3 imax = glm::ceil(max);
+
+			std::vector<glm::vec3> blockCollisionCandidates;
+			for (int x = imin.x; x <= imax.x; x++) {
+				for (int y = imin.y; y <= imax.y; y++) {
+					for (int z = imin.z; z <= imax.z; z++) {
+						if (getTerrain().getBlock(x, y, z) > 0) {
+							blockCollisionCandidates.push_back(glm::vec3(x, y, z));
+						}
 					}
 				}
 			}
-		}
 
-		std::sort(blockCollisionCandidates.begin(), blockCollisionCandidates.end(),
-			[&](const glm::vec3& a, const glm::vec3& b) -> bool
-		{
-			return getDistanceToBlockCenter(entity, a) < getDistanceToBlockCenter(entity, b);
-		});
-		resolveEntityTerrainCollisions(entity, blockCollisionCandidates);
+			std::sort(blockCollisionCandidates.begin(), blockCollisionCandidates.end(),
+				[&](const glm::vec3& a, const glm::vec3& b) -> bool
+			{
+				return getDistanceToBlockCenter(entity, a) < getDistanceToBlockCenter(entity, b);
+			});
+
+			if (resolveEntityTerrainCollisions(entity, blockCollisionCandidates)) {
+				break;
+			}
+		}
 	}
 
 	glm::ivec2 getMinMaxChunkOffsets(float coordinate, uint32_t radius, uint32_t chunkSize)
@@ -217,6 +233,19 @@ namespace yamc
 		}
 	}
 
+	bool terrainContainsBlocksAtY(const Terrain& terrain, const glm::ivec3& minBlockCoordinate, const glm::ivec3& maxBlockCoordinate, int y)
+	{
+		for (int x = minBlockCoordinate.x; x <= maxBlockCoordinate.x; x++) {
+			for (int z = minBlockCoordinate.z; z <= maxBlockCoordinate.z; z++) {
+				if (terrain.getBlock(x, y, z) != 0) {
+					return true;
+				}
+			}
+		}
+
+		return false;
+	}
+
 	void World::pushEntityToTheTop(Entity* entity) const
 	{
 		auto minBoundary = entity->boundingBox.center - entity->boundingBox.halfSize;
@@ -224,18 +253,12 @@ namespace yamc
 		auto minBlockCoordinate = glm::ivec3(glm::floor(minBoundary));
 		auto maxBlockCoordinate = glm::ivec3(glm::floor(maxBoundary));
 
-		int maxY = 0;
-		for (int x = minBlockCoordinate.x; x <= maxBlockCoordinate.x; x++) {
-			for (int z = minBlockCoordinate.z; z <= maxBlockCoordinate.z; z++) {
-				for (int y = Chunk::MaxHeight - 1; y > 0; y--) {
-					if (terrain.getBlock(x, y, z) != 0 && (y + 1) > maxY) {
-						maxY = y + 1;
-					}
-				}
+		for (int y = Chunk::MaxHeight - 1; y > 0; y--) {
+			if (terrainContainsBlocksAtY(terrain, minBlockCoordinate, maxBlockCoordinate, y)) {
+				entity->boundingBox.center.y = y + 1 + entity->boundingBox.halfSize.y + 0.1f;
+				return;
 			}
 		}
-
-		entity->boundingBox.center.y = maxY + entity->boundingBox.halfSize.y + 0.0001f;
 	}
 
 	void World::writeChunkToFile(const std::string& path, const Chunk* chunk) const

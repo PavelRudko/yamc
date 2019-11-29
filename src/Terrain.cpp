@@ -1,5 +1,6 @@
 #include "Terrain.h"
 #include <glm/gtc/constants.hpp>
+#include <inttypes.h>
 
 namespace yamc
 {
@@ -124,7 +125,7 @@ namespace yamc
 		int localIndex = worldIndex % chunkSize;
 		return localIndex >= 0 ? localIndex : chunkSize - localIndex - 1;
 	}
-
+			
 	Terrain::Terrain()
 	{
 	}
@@ -138,19 +139,22 @@ namespace yamc
 		int32_t chunkX = getChunkIndex(x, Chunk::MaxWidth);
 		int32_t chunkZ = getChunkIndex(z, Chunk::MaxLength);
 
-		chunkKey = pack(chunkX, chunkZ);
-		auto chunk = chunks.find(chunkKey);
+		uint64_t key = getChunkKey(chunkX, chunkZ);
+		auto chunk = chunks.find(key);
 		if (chunk == chunks.end()) {
 			return false;
 		}
 
+		chunkKey = key;
 		localX = getLocalBlockIndex(x, Chunk::MaxWidth);
 		localZ = getLocalBlockIndex(z, Chunk::MaxLength);
 		*outChunk = chunk->second;
+
+		return true;
 	}
 
 	uint32_t Terrain::getBlock(int x, int y, int z) const
-	{
+	{	
 		Chunk* chunk = nullptr;
 		uint32_t localX, localZ;
 		uint64_t chunkKey;

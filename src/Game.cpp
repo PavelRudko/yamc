@@ -23,6 +23,13 @@ namespace yamc
 
 		glfwSetCursorPos(window, windowWidth / 2, windowHeight / 2);
 		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
+		inventory.setItem(0, 1);
+		inventory.setItem(1, 2);
+		inventory.setItem(2, 3);
+		inventory.setHotbarItem(0, 0);
+		inventory.setHotbarItem(1, 1);
+		inventory.setHotbarItem(2, 2);
 	}
 
 	void Game::update(float dt)
@@ -36,13 +43,6 @@ namespace yamc
 
 		camera.setPosition(player.boundingBox.center + glm::vec3(0, 0.6f, 0));
 		currentBlockSelection = findBlockSelection(camera.getPosition(), camera.getLookDirection(), 4.0f);
-
-		inventory.setItem(0, 1);
-		inventory.setItem(1, 2);
-		inventory.setItem(2, 3);
-		inventory.setHotbarItem(0, 0);
-		inventory.setHotbarItem(1, 1);
-		inventory.setHotbarItem(2, 2);
 	}
 
 	int getMinAxis(const glm::vec3& dir)
@@ -59,6 +59,9 @@ namespace yamc
 
 	float closestBoundDistance(float start, float direction)
 	{
+		if (start == (int)start && direction > 0) {
+			return 1.0f / direction;
+		}
 		return (direction > 0 ? ceilf(start) - start : start - floorf(start)) / abs(direction);
 	}
 
@@ -218,6 +221,8 @@ namespace yamc
 		glEnable(GL_DEPTH_TEST);
 		glEnable(GL_CULL_FACE);
 		glFrontFace(GL_CCW);
+
+		glDisable(GL_BLEND);
 
 		auto perspectiveMatrix = glm::perspective(glm::radians(55.0f), (float)windowWidth / (float)windowHeight, 0.1f, 1000.0f);
 		auto viewMatrix = camera.getViewMatrix();
