@@ -43,6 +43,7 @@ namespace yamc
 		void loadInitialView();
 		static void windowSizeCallback(GLFWwindow* window, int width, int height);
 		static void scrollCallback(GLFWwindow* window, double xoffset, double yoffset);
+		static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
 	};
 
 }

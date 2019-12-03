@@ -1,21 +1,25 @@
 #include "Game.h"
+
+#include <gl3w.h>
+#include <GLFW/glfw3.h>
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtc/matrix_transform.hpp>
-#include <algorithm>
-#include "Shader.h"
 #include "Application.h"
 
 namespace yamc
 {
-	Game::Game(Application* application) :
+	const float Game::MoveSpeed = 3.0f;
+	const float Game::RunSpeedMultiplier = 2.0f;
+	const float Game::MouseSensitivity = 0.002f;
+	const float Game::Gravity = 7.5f;
+	const float Game::JumpVelocity = 6.0f;
+
+	Game::Game(Application* application, const std::string& worldName, int worldSeed) :
 		View(application),
 		isCursorLocked(true),
-		wasLeftMouseButtonPressed(false),
-		wasRightMouseButtonPressed(false),
-		mouseSensitivity(0.002f),
-		moveSpeed(3.0f),
-		world("test", 5105340),
-		player(world.getPlayer())
+		world(worldName, worldSeed, application->getSettings()->visibleChunkRadius),
+		player(world.getPlayer()),
+		currentBlockSelection(BlockSelection())
 	{
 	}
 
@@ -39,7 +43,7 @@ namespace yamc
 		updateMouseInput(dt);
 		updateMoveKeys(dt);
 		if (!player.isGrounded) {
-			player.velocity.y -= 7.5f * dt;
+			player.velocity.y -= Gravity * dt;
 		}
 		world.update(dt);
 
@@ -112,47 +116,8 @@ namespace yamc
 	{
 		double windowCenterX = application->getWindowWidth() / 2;
 		double windowCenterY = application->getWindowHeight() / 2;
-		
-		if (glfwGetMouseButton(application->getWindow(), GLFW_MOUSE_BUTTON_1) == GLFW_PRESS) {
-			if (isCursorLocked) {
-				if (currentBlockSelection.isSelected && !wasLeftMouseButtonPressed) {
-					world.getTerrain().setBlock(currentBlockSelection.coordinate.x, currentBlockSelection.coordinate.y, currentBlockSelection.coordinate.z, 0);
-				}
-			}
-			else {
-				glfwSetCursorPos(application->getWindow(), windowCenterX, windowCenterY);
-				isCursorLocked = true;
-				glfwSetInputMode(application->getWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-			}
-			wasLeftMouseButtonPressed = true;
-		}
-		else {
-			wasLeftMouseButtonPressed = false;
-		}
 
-		if (glfwGetMouseButton(application->getWindow(), GLFW_MOUSE_BUTTON_2) == GLFW_PRESS) {
-			if (isCursorLocked) {
-				if (currentBlockSelection.isSelected && !wasRightMouseButtonPressed) {
-					auto block = currentBlockSelection.coordinate + currentBlockSelection.normal;
-
-					AABB blockBoundingBox;
-					blockBoundingBox.center = (glm::vec3)block + glm::vec3(0.5f, 0.5f, 0.5f);
-					blockBoundingBox.halfSize = glm::vec3(0.5f, 0.5f, 0.5f);
-
-					auto item = inventory.getHotbarItem(inventory.getSelectedHotbarSlot());
-
-					if (!hasIntersection(player.boundingBox, blockBoundingBox) && item) {
-						world.getTerrain().setBlock(block.x, block.y, block.z, item->id);
-					}
-				}
-			}
-			wasRightMouseButtonPressed = true;
-		}
-		else {
-			wasRightMouseButtonPressed = false;
-		}
-
-		if (glfwGetKey(application->getWindow(), GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+		if (isKeyPressed(GLFW_KEY_ESCAPE) == GLFW_PRESS) {
 			isCursorLocked = false;
 			glfwSetInputMode(application->getWindow(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 		}
@@ -161,9 +126,42 @@ namespace yamc
 			glfwGetCursorPos(application->getWindow(), &mouseX, &mouseY);
 			mouseX -= windowCenterX;
 			mouseY -= windowCenterY;
-			camera.addYaw(-mouseX * mouseSensitivity);
-			camera.addPitch(-mouseY * mouseSensitivity);
+			camera.addYaw(-mouseX * MouseSensitivity);
+			camera.addPitch(-mouseY * MouseSensitivity);
 			glfwSetCursorPos(application->getWindow(), windowCenterX, windowCenterY);
+		}
+	}
+
+	void Game::onMouseClick(int button, int mods)
+	{
+		double windowCenterX = application->getWindowWidth() / 2;
+		double windowCenterY = application->getWindowHeight() / 2;
+
+		if (button == GLFW_MOUSE_BUTTON_1) {
+			if (isCursorLocked) {
+				if (currentBlockSelection.isSelected) {
+					world.getTerrain().setBlock(currentBlockSelection.coordinate.x, currentBlockSelection.coordinate.y, currentBlockSelection.coordinate.z, 0);
+				}
+			}
+			else {
+				glfwSetCursorPos(application->getWindow(), windowCenterX, windowCenterY);
+				isCursorLocked = true;
+				glfwSetInputMode(application->getWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+			}
+		}
+
+		if (button == GLFW_MOUSE_BUTTON_2 && isCursorLocked && currentBlockSelection.isSelected) {
+			auto block = currentBlockSelection.coordinate + currentBlockSelection.normal;
+
+			AABB blockBoundingBox;
+			blockBoundingBox.center = (glm::vec3)block + glm::vec3(0.5f, 0.5f, 0.5f);
+			blockBoundingBox.halfSize = glm::vec3(0.5f, 0.5f, 0.5f);
+
+			auto item = inventory.getHotbarItem(inventory.getSelectedHotbarSlot());
+
+			if (!hasIntersection(player.boundingBox, blockBoundingBox) && item) {
+				world.getTerrain().setBlock(block.x, block.y, block.z, item->id);
+			}
 		}
 	}
 
@@ -172,16 +170,16 @@ namespace yamc
 		float speedForward = 0;
 		float speedSide = 0;
 
-		if (glfwGetKey(application->getWindow(), GLFW_KEY_W)) {
+		if (isKeyPressed(GLFW_KEY_W)) {
 			speedForward += 1.0f;
 		}
-		if (glfwGetKey(application->getWindow(), GLFW_KEY_S)) {
+		if (isKeyPressed(GLFW_KEY_S)) {
 			speedForward -= 1.0f;
 		}
-		if (glfwGetKey(application->getWindow(), GLFW_KEY_A)) {
+		if (isKeyPressed(GLFW_KEY_A)) {
 			speedSide -= 1.0f;
 		}
-		if (glfwGetKey(application->getWindow(), GLFW_KEY_D)) {
+		if (isKeyPressed(GLFW_KEY_D)) {
 			speedSide += 1.0f;
 		}
 
@@ -191,16 +189,21 @@ namespace yamc
 		velocity += direction * speedForward;
 		velocity += glm::normalize(glm::cross(direction, glm::vec3(0, 1, 0))) * speedSide;
 
-		if (glfwGetKey(application->getWindow(), GLFW_KEY_LEFT_SHIFT)) {
-			velocity *= 2.0f;
+		if (isKeyPressed(GLFW_KEY_LEFT_SHIFT)) {
+			velocity *= RunSpeedMultiplier;
 		}
 
-		player.velocity.x = velocity.x * moveSpeed;
-		player.velocity.z = velocity.z * moveSpeed;
+		player.velocity.x = velocity.x * MoveSpeed;
+		player.velocity.z = velocity.z * MoveSpeed;
 
-		if (player.isGrounded && glfwGetKey(application->getWindow(), GLFW_KEY_SPACE)) {
-			player.velocity.y += 6.0f;
+		if (player.isGrounded && isKeyPressed(GLFW_KEY_SPACE)) {
+			player.velocity.y += JumpVelocity;
 		}
+	}
+
+	void Game::scroll(double delta)
+	{
+		inventory.scrollHotbar(delta < 0 ? 1 : -1);
 	}
 
 	void Game::rebuildChunkMeshes(Renderer* renderer)
@@ -223,13 +226,12 @@ namespace yamc
 		glEnable(GL_DEPTH_TEST);
 		glEnable(GL_CULL_FACE);
 		glFrontFace(GL_CCW);
-
 		glDisable(GL_BLEND);
 
 		auto perspectiveMatrix = glm::perspective(glm::radians(55.0f), (float)application->getWindowWidth() / (float)application->getWindowHeight(), 0.1f, 1000.0f);
 		auto viewMatrix = camera.getViewMatrix();
 
-		renderer->renderTerrain(perspectiveMatrix, viewMatrix, world.getTerrain());
+		renderer->renderTerrain(perspectiveMatrix, viewMatrix, world.getTerrain(), application->getSettings()->visibleChunkRadius, camera.getPosition());
 		if (currentBlockSelection.isSelected) {
 			renderer->renderCubeOutline(perspectiveMatrix, viewMatrix, (glm::vec3)currentBlockSelection.coordinate + glm::vec3(0.5f, 0.5f, 0.5f));
 		}
@@ -238,7 +240,6 @@ namespace yamc
 		glDisable(GL_CULL_FACE);
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		glFrontFace(GL_CW);
 		auto guiProjectionMatrix = glm::ortho(0.0f, (float)application->getWindowWidth(), (float)application->getWindowHeight(), 0.0f, -1000.0f, 1000.0f);
 		renderer->renderText(guiProjectionMatrix, "FPS:" + std::to_string(application->getCurrentFPS()), glm::vec3(1, 1, 1),  glm::vec2(10, 10), 2);
 
@@ -248,11 +249,6 @@ namespace yamc
 		renderer->renderText(guiProjectionMatrix, "CHUNKS IN MEMORY:" + std::to_string(chunksCount), glm::vec3(1, 1, 1), glm::vec2(10, 50), 2);
 		renderer->renderCross(guiProjectionMatrix, glm::vec2(application->getWindowWidth() / 2, application->getWindowHeight() / 2));
 		renderer->renderInventoryHotbar(guiProjectionMatrix, glm::vec2(application->getWindowWidth() / 2, application->getWindowHeight() - 50), inventory);
-	}
-
-	void Game::scroll(double delta)
-	{
-		inventory.scrollHotbar(delta < 0 ? 1 : -1);
 	}
 
 	void Game::destroy()

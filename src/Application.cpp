@@ -38,6 +38,7 @@ namespace yamc
 		glfwSetWindowUserPointer(window, this);
 		glfwSetFramebufferSizeCallback(window, windowSizeCallback);
 		glfwSetScrollCallback(window, scrollCallback);
+		glfwSetMouseButtonCallback(window, mouseButtonCallback);
 		glfwSwapInterval(0);
 		glfwGetWindowSize(window, &windowWidth, &windowHeight);
 
@@ -48,8 +49,9 @@ namespace yamc
 
 	void Application::run()
 	{
-		long long maxFPS = 1000;
-		long long minFrameNanoseconds = 1000000000 / maxFPS;
+		static long NanosecondsInSecond = 1000000000;
+		static long long MaxFPS = 1000;
+		static long long MinFrameNanoseconds = NanosecondsInSecond / MaxFPS;
 
 		auto lastTime = std::chrono::high_resolution_clock::now();
 		long long nanosecondsSinceFPSUpdate = 0;
@@ -57,7 +59,7 @@ namespace yamc
 		while (!glfwWindowShouldClose(window)) {
 			auto currentTime = std::chrono::high_resolution_clock::now();
 			auto elapsedNanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(currentTime - lastTime).count();
-			double elapsedSeconds = elapsedNanoseconds / 1000000000.0;
+			double elapsedSeconds = elapsedNanoseconds / (double)NanosecondsInSecond;
 
 			glfwPollEvents();
 			currentView->update(elapsedSeconds);
@@ -66,15 +68,15 @@ namespace yamc
 
 			frameCounter++;
 			nanosecondsSinceFPSUpdate += elapsedNanoseconds;
-			if (nanosecondsSinceFPSUpdate > 1000000000) {
-				nanosecondsSinceFPSUpdate -= 1000000000;
+			if (nanosecondsSinceFPSUpdate > NanosecondsInSecond) {
+				nanosecondsSinceFPSUpdate -= NanosecondsInSecond;
 				fps = frameCounter;
 				frameCounter = 0;
 			}
 
 			lastTime = currentTime;
-			if (elapsedNanoseconds < minFrameNanoseconds) {
-				std::this_thread::sleep_for(std::chrono::nanoseconds(minFrameNanoseconds - elapsedNanoseconds));
+			if (elapsedNanoseconds < MinFrameNanoseconds) {
+				std::this_thread::sleep_for(std::chrono::nanoseconds(MinFrameNanoseconds - elapsedNanoseconds));
 			}
 		}
 	}
@@ -117,12 +119,12 @@ namespace yamc
 	{
 		settings.initialScreenHeight = 600;
 		settings.initialScreenWidth = 800;
-		settings.visibleChunkRadius = 2;
+		settings.visibleChunkRadius = 4;
 	}
 
 	void Application::loadInitialView()
 	{
-		currentView = new Game(this);
+		currentView = new Game(this, "test", 542817);
 		currentView->init();
 	}
 
@@ -147,5 +149,17 @@ namespace yamc
 	{
 		auto application = (Application*)glfwGetWindowUserPointer(window);
 		application->currentView->scroll(yoffset);
+	}
+
+	void Application::mouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
+	{
+		auto application = (Application*)glfwGetWindowUserPointer(window);
+
+		if (action == GLFW_PRESS) {
+			application->currentView->onMouseClick(button, mods);
+		}
+		else if (action == GLFW_RELEASE) {
+			application->currentView->onMouseRelease(button, mods);
+		}
 	}
 }

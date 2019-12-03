@@ -82,11 +82,15 @@ namespace yamc
 		return glm::length(blockCenter - entity->boundingBox.center);
 	}
 
-	World::World(const std::string& name, int seed) :
+	World::World(const std::string& name, int seed, uint32_t visibleChunksRadius) :
 		seed(seed),
 		directoryName("worlds/" + name)
 	{
 		ensureWorldDirectoryExists();
+
+		minSurroundingChunksRadius = visibleChunksRadius + 1;
+		purgeRemainingChunksRadius = visibleChunksRadius + 2;
+		maxChunksInMemory = pow((purgeRemainingChunksRadius * 2 + 1), 2)  * 3;
 
 		player.boundingBox.center = glm::vec3(0, 0, 0);
 		player.boundingBox.halfSize = glm::vec3(0.4f, 0.9f, 0.4f);
@@ -95,16 +99,16 @@ namespace yamc
 
 		trackedEntities.push_back(&player);
 
-		loadSurroundingChunks(MinSurroundingChunksRadius);
+		loadSurroundingChunks(minSurroundingChunksRadius);
 
 		pushEntityToTheTop(&player);
 	}
 
 	void World::update(float dt)
 	{
-		loadSurroundingChunks(MinSurroundingChunksRadius);
-		if (terrain.getChunks().size() > MaxChunksInMemory) {
-			unloadDistantChunks(PurgeRemainingChunksRadius);
+		loadSurroundingChunks(minSurroundingChunksRadius);
+		if (terrain.getChunks().size() > maxChunksInMemory) {
+			unloadDistantChunks(purgeRemainingChunksRadius);
 		}
 
 		for (auto& entity : trackedEntities) {

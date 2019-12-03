@@ -29,13 +29,8 @@ namespace yamc
 
 	class World
 	{
-	private:
-		static constexpr uint32_t MinSurroundingChunksRadius = 1;
-		static constexpr uint32_t PurgeRemainingChunksRadius = 3;
-		static constexpr uint32_t MaxChunksInMemory = 1500;
-
 	public:
-		World(const std::string& name, int seed);
+		World(const std::string& name, int seed, uint32_t visibleChunksRadius);
 		World(const World&) = delete;
 		World(World&& other) = default;
 
@@ -56,6 +51,9 @@ namespace yamc
 		std::vector<Entity*> trackedEntities;
 		int seed;
 		std::string directoryName;
+		uint32_t minSurroundingChunksRadius;
+		uint32_t purgeRemainingChunksRadius;
+		uint32_t maxChunksInMemory;
 
 		void updateEntityPosition(Entity* entity, float dt);
 		void loadSurroundingChunks(uint32_t radius);

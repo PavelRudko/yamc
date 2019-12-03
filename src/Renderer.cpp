@@ -79,28 +79,35 @@ namespace yamc
 		glUseProgram(0);
 	}
 
-	void Renderer::renderTerrain(const glm::mat4& projectionMatrix, const glm::mat4& viewMatrix, const Terrain& terrain) const
+	void Renderer::renderTerrain(const glm::mat4& projectionMatrix, const glm::mat4& viewMatrix, const Terrain& terrain, int visibleChunksRadius, const glm::vec3 cameraPosition) const
 	{
 		defaultShader.use();
 		glBindTexture(GL_TEXTURE_2D, atlasTexture.getID());
 
 		defaultShader.setTextureOffset(glm::vec2(0, 0));
 
-		for (const auto& pair : terrain.getChunks()) {
-			uint64_t key = pair.first;
-			auto chunkOffset = getChunkOffset(key);
+		int cameraChunkX = getChunkIndex(cameraPosition.x, Chunk::MaxWidth);
+		int cameraChunkZ = getChunkIndex(cameraPosition.z, Chunk::MaxLength);
+		auto chunks = terrain.getChunks();
 
-			glm::vec3 offset(chunkOffset.x * (float)Chunk::MaxWidth, 0, chunkOffset.y * (float)Chunk::MaxLength);
+		for (int x = cameraChunkX - visibleChunksRadius; x <= cameraChunkX + visibleChunksRadius; x++) {
+			for (int z = cameraChunkZ - visibleChunksRadius; z <= cameraChunkZ + visibleChunksRadius; z++) {
+				uint64_t key = getChunkKey(x, z);
+				auto pair = chunks.find(key);
+				if (pair != chunks.end()) {
+					glm::vec3 offset(x * (float)Chunk::MaxWidth, 0, z * (float)Chunk::MaxLength);
 
-			auto chunk = pair.second;
-			const Mesh& mesh = chunk->getMesh();
-			if (mesh.getIndicesCount() > 0) {
-				auto modelMatrix = glm::translate(glm::identity<glm::mat4>(), offset);
-				defaultShader.setMVP(projectionMatrix * viewMatrix * modelMatrix);
+					auto chunk = pair->second;
+					const Mesh& mesh = chunk->getMesh();
+					if (mesh.getIndicesCount() > 0) {
+						auto modelMatrix = glm::translate(glm::identity<glm::mat4>(), offset);
+						defaultShader.setMVP(projectionMatrix * viewMatrix * modelMatrix);
 
-				glBindVertexArray(mesh.getVAO());
-				glDrawElements(GL_TRIANGLES, mesh.getIndicesCount(), GL_UNSIGNED_INT, 0);
-				glBindVertexArray(0);
+						glBindVertexArray(mesh.getVAO());
+						glDrawElements(GL_TRIANGLES, mesh.getIndicesCount(), GL_UNSIGNED_INT, 0);
+						glBindVertexArray(0);
+					}
+				}
 			}
 		}
 
