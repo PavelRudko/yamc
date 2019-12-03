@@ -6,36 +6,29 @@
 #include "Camera.h"
 #include "Texture.h"
 #include "World.h"
-#include "Renderer.h"
+#include "View.h"
 #include "Mesh.h"
 #include <GLFW/glfw3.h>
 
 namespace yamc
 {
-	class Game
+	class Game : public View
 	{
 	public:
-		Game(GLFWwindow* window);
-		Game(const Game&) = delete;
-		Game(Game&& other) = delete;
-		void update(float dt);
-		void render();
-		void setFPS(int value);
-		void onWindowResize(int width, int height);
-		void onScroll(double delta);
-		void onExit();
-		~Game();
+		Game(Application* window);
 
-	private:
-		GLFWwindow* window;
-		int windowWidth;
-		int windowHeight;
-		int fps;
-		
+		void init() override;
+		void update(float dt) override;
+		void render(Renderer* renderer) override;
+		void scroll(double delta) override;
+		void destroy() override;
+
+		~Game() override;
+
+	private:	
 		World world;
 		Entity& player;
 		Camera camera;
-		Renderer renderer;
 		BlockSelection currentBlockSelection;
 		Inventory inventory;
 		
@@ -48,7 +41,7 @@ namespace yamc
 		BlockSelection findBlockSelection(const glm::vec3& start, const glm::vec3& direction, float maxDistance) const;
 		void updateMouseInput(float dt);
 		void updateMoveKeys(float dt);
-		void rebuildChunkMeshes();
+		void rebuildChunkMeshes(Renderer* renderer);
 	};
 }
 

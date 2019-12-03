@@ -12,6 +12,8 @@ set(YAMC_SOURCE_FILES
     World.cpp
     Inventory.cpp
     MeshBuilder.cpp
+    Application.cpp
+    View.cpp
 )
 
 set(YAMC_HEADER_FILES
@@ -26,6 +28,8 @@ set(YAMC_HEADER_FILES
     World.h
     Inventory.h
     MeshBuilder.h
+    Application.h
+    View.h
 )
 
 set(YAMC_SHADERS
