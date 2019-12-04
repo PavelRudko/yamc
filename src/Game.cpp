@@ -266,6 +266,5 @@ namespace yamc
 
 	Game::~Game()
 	{
-		View::~View();
 	}
 }

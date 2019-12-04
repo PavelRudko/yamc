@@ -2,6 +2,7 @@
 #define YAMC_WORLD_H
 
 #include "Terrain.h"
+#include <string>
 
 namespace yamc
 {

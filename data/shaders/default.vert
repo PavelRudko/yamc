@@ -1,4 +1,4 @@
-#version 150 core
+#version 150
 
 uniform mat4 mvp;
 uniform vec2 textureOffset;
@@ -11,5 +11,5 @@ out vec3 frag_uv;
 void main()
 {
     gl_Position = mvp * vec4(position.xyz, 1.0);
-	frag_uv = vec3(in_uv + textureOffset,  position.w);
+	frag_uv = vec3(in_uv + textureOffset, position.w);
 }

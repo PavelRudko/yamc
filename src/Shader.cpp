@@ -47,6 +47,9 @@ namespace yamc
 		glAttachShader(id, vertexShaderID);
 		glAttachShader(id, fragmentShaderID);
 
+        glBindAttribLocation(id, 0, "position");
+        glBindAttribLocation(id, 1, "in_uv");
+        
 		glLinkProgram(id);
 
 		int isLinked = 0;

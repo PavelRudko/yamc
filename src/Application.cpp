@@ -19,8 +19,10 @@ namespace yamc
 			throw std::runtime_error("Cannot initialize GLFW.");
 		}
 
-		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+        glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 		window = glfwCreateWindow(settings.initialScreenWidth, settings.initialScreenHeight, "YAMC", nullptr, nullptr);
 
