@@ -1,8 +1,8 @@
-#version 410 core
+#version 150
 
 uniform mat4 mvp;
 
-layout (location = 0) in vec3 position;
+in vec3 position;
 
 void main()
 {

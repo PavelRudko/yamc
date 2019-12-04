@@ -1,14 +1,13 @@
-#version 410 core
+#version 150 core
 
 uniform sampler2D tex;
 
-layout (location = 0) in float illuminance;
-layout (location = 1) in vec2 uv;
+in vec3 frag_uv;
 
 out vec4 out_color;
 
 void main()
 {
-    vec4 color = texture(tex, uv);
-    out_color = vec4(color.xyz * illuminance, 1.0);
+    vec4 color = texture(tex, frag_uv.xy);
+    out_color = vec4(color.xyz * frag_uv.z, 1.0);
 }

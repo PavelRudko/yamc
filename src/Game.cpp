@@ -18,9 +18,15 @@ namespace yamc
 		View(application),
 		isCursorLocked(true),
 		world(worldName, worldSeed, application->getSettings()->visibleChunkRadius),
-		player(world.getPlayer()),
 		currentBlockSelection(BlockSelection())
 	{
+		player.boundingBox.center = glm::vec3(0, 0, 0);
+		player.boundingBox.halfSize = glm::vec3(0.4f, 0.9f, 0.4f);
+		player.velocity = glm::vec3(0, 0, 0);
+		player.isGrounded = false;
+
+		world.loadSurroundingChunks(player.boundingBox.center, application->getSettings()->visibleChunkRadius + 1);
+		pushEntityToTheTop(world.getTerrain(), &player);
 	}
 
 	void Game::init()
@@ -45,6 +51,8 @@ namespace yamc
 		if (!player.isGrounded) {
 			player.velocity.y -= Gravity * dt;
 		}
+		world.loadSurroundingChunks(player.boundingBox.center, application->getSettings()->visibleChunkRadius + 1);
+		updateEntityPosition(world.getTerrain(), &player, dt);
 		world.update(dt);
 
 		camera.setPosition(player.boundingBox.center + glm::vec3(0, 0.6f, 0));

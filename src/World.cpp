@@ -2,86 +2,10 @@
 #include <algorithm>
 #include <filesystem>
 #include <string>
+#include "Entities.h"
 
 namespace yamc
 {
-	bool hasIntersection(const AABB& a, const AABB& b)
-	{
-		for (int i = 0; i < 3; i++) {
-			float aMin = a.center[i] - a.halfSize[i];
-			float aMax = a.center[i] + a.halfSize[i];
-			float bMin = b.center[i] - b.halfSize[i];
-			float bMax = b.center[i] + b.halfSize[i];
-
-			if (bMax < aMin) {
-				return false;
-			}
-
-			if (bMin > aMax) {
-				return false;
-			}
-		}
-		return true;
-	}
-
-	bool getContact(const AABB& a, const AABB& b, glm::vec3& normal, float& penetration)
-	{
-		penetration = std::numeric_limits<float>().infinity();
-		auto diff = a.center - b.center;
-
-		for (int i = 0; i < 3; i++) {
-			float axisDiff = diff[i];
-			float ra = a.halfSize[i];
-			float rb = b.halfSize[i];
-
-			if (abs(axisDiff) >= ra + rb) {
-				return false;
-			}
-
-			float p = abs(axisDiff) - ra;
-			p = rb - p;
-			if (p < penetration) {
-				normal = glm::vec3(0, 0, 0);
-				normal[i] = axisDiff > 0 ? 1.0f : -1.0f;
-				penetration = p;
-			}
-		}
-		return true;
-	}
-
-	bool resolveEntityTerrainCollisions(Entity* entity, const std::vector<glm::vec3>& potentialBlocks)
-	{
-		static float bias = 0.00001f;
-		bool hasCollision = false;
-		entity->isGrounded = false;
-
-		for (auto block : potentialBlocks) {
-			AABB blockBoundingBox;
-			blockBoundingBox.center = block + glm::vec3(0.5f, 0.5f, 0.5f);
-			blockBoundingBox.halfSize = glm::vec3(0.5f, 0.5f, 0.5f);
-
-			glm::vec3 normal;
-			float penetration = 0;
-			if (getContact(entity->boundingBox, blockBoundingBox, normal, penetration)) {
-				hasCollision = true;
-				entity->boundingBox.center += normal * (penetration + bias);
-				float velocityProjection = glm::dot(entity->velocity, normal);
-				entity->velocity -= normal * velocityProjection;
-				if (normal.y > 0) {
-					entity->isGrounded = true;
-				}
-			}
-		}
-
-		return hasCollision;
-	}
-
-	float getDistanceToBlockCenter(const Entity* entity, const glm::vec3& block)
-	{
-		auto blockCenter = block + glm::vec3(0.5f, 0.5f, 0.5f);
-		return glm::length(blockCenter - entity->boundingBox.center);
-	}
-
 	World::World(const std::string& name, int seed, uint32_t visibleChunksRadius) :
 		seed(seed),
 		directoryName("worlds/" + name)
@@ -90,30 +14,11 @@ namespace yamc
 
 		minSurroundingChunksRadius = visibleChunksRadius + 1;
 		purgeRemainingChunksRadius = visibleChunksRadius + 2;
-		maxChunksInMemory = pow((purgeRemainingChunksRadius * 2 + 1), 2)  * 3;
-
-		player.boundingBox.center = glm::vec3(0, 0, 0);
-		player.boundingBox.halfSize = glm::vec3(0.4f, 0.9f, 0.4f);
-		player.velocity = glm::vec3(0, 0, 0);
-		player.isGrounded = false;
-
-		trackedEntities.push_back(&player);
-
-		loadSurroundingChunks(minSurroundingChunksRadius);
-
-		pushEntityToTheTop(&player);
+		maxChunksInMemory = pow((purgeRemainingChunksRadius * 2 + 1), 2) * 3;
 	}
 
 	void World::update(float dt)
 	{
-		loadSurroundingChunks(minSurroundingChunksRadius);
-		if (terrain.getChunks().size() > maxChunksInMemory) {
-			unloadDistantChunks(purgeRemainingChunksRadius);
-		}
-
-		for (auto& entity : trackedEntities) {
-			updateEntityPosition(entity, dt);
-		}
 	}
 
 	void World::saveWorld()
@@ -121,47 +26,6 @@ namespace yamc
 		auto chunks = terrain.getChunks();
 		for (uint64_t key : terrain.getChunkKeysToSave()) {
 			writeChunkToFile(getChunkPath(key), chunks[key]);
-		}
-	}
-
-	void World::updateEntityPosition(Entity* entity, float dt)
-	{
-		static float maxStepLength = 0.5f;
-
-		auto originalPosition = entity->boundingBox.center;
-		auto direction = glm::normalize(entity->velocity);
-		auto delta = entity->velocity * dt;
-		auto deltaLength = glm::length(delta);
-		for (float distance = maxStepLength; distance < deltaLength + maxStepLength; distance += maxStepLength) {
-			float t = std::min(distance, deltaLength);
-			entity->boundingBox.center = originalPosition + direction * t;
-
-			auto min = entity->boundingBox.center - entity->boundingBox.halfSize;
-			auto max = entity->boundingBox.center + entity->boundingBox.halfSize;
-
-			glm::ivec3 imin = glm::floor(min);
-			glm::ivec3 imax = glm::ceil(max);
-
-			std::vector<glm::vec3> blockCollisionCandidates;
-			for (int x = imin.x; x <= imax.x; x++) {
-				for (int y = imin.y; y <= imax.y; y++) {
-					for (int z = imin.z; z <= imax.z; z++) {
-						if (getTerrain().getBlock(x, y, z) > 0) {
-							blockCollisionCandidates.push_back(glm::vec3(x, y, z));
-						}
-					}
-				}
-			}
-
-			std::sort(blockCollisionCandidates.begin(), blockCollisionCandidates.end(),
-				[&](const glm::vec3& a, const glm::vec3& b) -> bool
-			{
-				return getDistanceToBlockCenter(entity, a) < getDistanceToBlockCenter(entity, b);
-			});
-
-			if (resolveEntityTerrainCollisions(entity, blockCollisionCandidates)) {
-				break;
-			}
 		}
 	}
 
@@ -173,13 +37,12 @@ namespace yamc
 		return glm::ivec2(getChunkIndex(minWorldIndex, chunkSize), getChunkIndex(maxWorldIndex, chunkSize));
 	}
 
-	void World::loadSurroundingChunks(uint32_t radius)
+	void World::loadSurroundingChunks(const glm::vec3& position, uint32_t radius)
 	{
 		std::unordered_map<uint64_t, Chunk*>& chunks = terrain.getChunks();
 
-		auto playerCenter = player.boundingBox.center;
-		auto boundariesX = getMinMaxChunkOffsets(playerCenter.x, radius, Chunk::MaxWidth);
-		auto boundariesZ = getMinMaxChunkOffsets(playerCenter.z, radius, Chunk::MaxLength);
+		auto boundariesX = getMinMaxChunkOffsets(position.x, radius, Chunk::MaxWidth);
+		auto boundariesZ = getMinMaxChunkOffsets(position.z, radius, Chunk::MaxLength);
 
 		for (int x = boundariesX[0]; x <= boundariesX[1]; x++) {
 			for (int z = boundariesZ[0]; z <= boundariesZ[1]; z++) {
@@ -188,6 +51,10 @@ namespace yamc
 					loadChunk(x, z);
 				}
 			}
+		}
+
+		if (terrain.getChunks().size() > maxChunksInMemory) {
+			unloadDistantChunks(position, purgeRemainingChunksRadius);
 		}
 	}
 
@@ -210,11 +77,10 @@ namespace yamc
 		chunks[chunkKey] = chunk;
 	}
 
-	void World::unloadDistantChunks(uint32_t remainingRadius)
+	void World::unloadDistantChunks(const glm::vec3& position, uint32_t remainingRadius)
 	{
-		auto playerCenter = player.boundingBox.center;
-		auto boundariesX = getMinMaxChunkOffsets(playerCenter.x, remainingRadius, Chunk::MaxWidth);
-		auto boundariesZ = getMinMaxChunkOffsets(playerCenter.z, remainingRadius, Chunk::MaxLength);
+		auto boundariesX = getMinMaxChunkOffsets(position.x, remainingRadius, Chunk::MaxWidth);
+		auto boundariesZ = getMinMaxChunkOffsets(position.z, remainingRadius, Chunk::MaxLength);
 
 		std::unordered_map<uint64_t, Chunk*>& chunks = terrain.getChunks();
 		std::set<uint64_t>& dirtyChunkKeys = terrain.getChunkKeysToSave();
@@ -233,34 +99,6 @@ namespace yamc
 			}
 			else {
 				it++;
-			}
-		}
-	}
-
-	bool terrainContainsBlocksAtY(const Terrain& terrain, const glm::ivec3& minBlockCoordinate, const glm::ivec3& maxBlockCoordinate, int y)
-	{
-		for (int x = minBlockCoordinate.x; x <= maxBlockCoordinate.x; x++) {
-			for (int z = minBlockCoordinate.z; z <= maxBlockCoordinate.z; z++) {
-				if (terrain.getBlock(x, y, z) != 0) {
-					return true;
-				}
-			}
-		}
-
-		return false;
-	}
-
-	void World::pushEntityToTheTop(Entity* entity) const
-	{
-		auto minBoundary = entity->boundingBox.center - entity->boundingBox.halfSize;
-		auto maxBoundary = entity->boundingBox.center + entity->boundingBox.halfSize;
-		auto minBlockCoordinate = glm::ivec3(glm::floor(minBoundary));
-		auto maxBlockCoordinate = glm::ivec3(glm::floor(maxBoundary));
-
-		for (int y = Chunk::MaxHeight - 1; y > 0; y--) {
-			if (terrainContainsBlocksAtY(terrain, minBlockCoordinate, maxBlockCoordinate, y)) {
-				entity->boundingBox.center.y = y + 1 + entity->boundingBox.halfSize.y + 0.1f;
-				return;
 			}
 		}
 	}
@@ -297,16 +135,6 @@ namespace yamc
 	Terrain& World::getTerrain()
 	{
 		return terrain;
-	}
-
-	const Entity& World::getPlayer() const
-	{
-		return player;
-	}
-
-	Entity& World::getPlayer()
-	{
-		return player;
 	}
 
 	World::~World()

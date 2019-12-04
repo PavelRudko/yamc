@@ -5,6 +5,7 @@
 #include "World.h"
 #include "View.h"
 #include "Mesh.h"
+#include "Entities.h"
 
 namespace yamc
 {
@@ -30,7 +31,7 @@ namespace yamc
 		static const float JumpVelocity;
 
 		World world;
-		Entity& player;
+		Entity player;
 		Camera camera;
 		BlockSelection currentBlockSelection;
 		Inventory inventory;

@@ -1,4 +1,4 @@
-#version 410 core
+#version 150
 
 uniform vec4 color;
 

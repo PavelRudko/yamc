@@ -124,7 +124,7 @@ namespace yamc
 
 	void Application::loadInitialView()
 	{
-		currentView = new Game(this, "test", 542817);
+		currentView = new Game(this, "test", 542917);
 		currentView->init();
 	}
 

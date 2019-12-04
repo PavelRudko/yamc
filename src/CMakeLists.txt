@@ -14,6 +14,7 @@ set(YAMC_SOURCE_FILES
     MeshBuilder.cpp
     Application.cpp
     View.cpp
+    Entities.cpp
 )
 
 set(YAMC_HEADER_FILES
@@ -30,6 +31,7 @@ set(YAMC_HEADER_FILES
     MeshBuilder.h
     Application.h
     View.h
+    Entities.h
 )
 
 set(YAMC_SHADERS
@@ -45,4 +47,7 @@ source_group("Shaders" FILES ${YAMC_SHADERS})
 
 add_executable(yamc ${YAMC_SOURCE_FILES} ${YAMC_HEADER_FILES} ${YAMC_SHADERS})
 target_link_libraries(yamc PUBLIC glfw ${OPENGL_LIBRARIES})
-set_target_properties(yamc PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}")
+set_target_properties(yamc PROPERTIES 
+                      VS_DEBUGGER_WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
+                      CXX_STANDARD 17
+)
