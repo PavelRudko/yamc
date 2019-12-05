@@ -23,7 +23,7 @@ namespace yamc
 		serverAddress.sin_addr.s_addr = INADDR_ANY;
 		serverAddress.sin_port = htons(port);
 
-		if (bind(sock, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) == SOCKET_ERROR) {
+		if (bind(sock, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0) {
 			throw std::runtime_error("Cannot bind socket.");
 		}
 
@@ -32,7 +32,7 @@ namespace yamc
 		listen(sock, 3);
 
 		struct sockaddr_in clientAddress;
-		int clientAddressLength = sizeof(clientAddress);
+		socklen_t clientAddressLength = sizeof(clientAddress);
 		SOCKET clientSock = accept(sock, (struct sockaddr*)&clientAddress, &clientAddressLength);
 		if (IS_INVALID_SOCKET(clientSock)) {
 			throw std::runtime_error("Cannot accept client socket.");
