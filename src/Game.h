@@ -1,46 +1,53 @@
 #ifndef YAMC_GAME_H
 #define YAMC_GAME_H
 
-#include "Camera.h"
-#include "World.h"
-#include "View.h"
-#include "Mesh.h"
+#include "Terrain.h"
 #include "Entities.h"
+#include "WorldDataManager.h"
+#include "Renderer.h"
+#include <queue>
+#include <thread>
 
 namespace yamc
 {
-	class Game : public View
+	class Game
 	{
 	public:
-		Game(Application* window, const std::string& worldName, int worldSeed);
+		Game(uint32_t visibleChunksRadius);
 
-		void init() override;
-		void update(float dt) override;
-		void render(Renderer* renderer) override;
-		void scroll(double delta) override;
-		void onMouseClick(int button, int mods) override;
-		void destroy() override;
+		virtual void init();
 
-		~Game() override;
+		void setVisibleChunkRadius(uint32_t visibleChunksRadius);
+		virtual void update(const glm::vec3& playerPosition, float dt);
+		static void backgroundUpdate(Game* game);
+
+		virtual void loadSurroundingChunks(const glm::vec3& playerPosition);
+
+		const Terrain& getTerrain() const;
+		Terrain& getTerrain();
+
+		const std::unordered_map<uint64_t, Mesh*>& getChunkMeshes() const;
+		void rebuildChunkMeshes(Renderer* renderer);
+
+		virtual void destroy();
+
+	protected:
+		Terrain terrain;
+		uint32_t minSurroundingChunksRadius;
+		uint32_t purgeRemainingChunksRadius;
+		uint32_t maxChunksInMemory;
+		std::thread backgroundThread;
+
+		void requestSurroundingChunks(const glm::vec3& playerPosition);
+		void unloadDistantChunks(const glm::vec3& position);
+
+		virtual Chunk* loadChunk(uint64_t key) = 0;
+		virtual void saveChunk(uint64_t key, Chunk* chunk) = 0;
 
 	private:
-		static const float MoveSpeed;
-		static const float RunSpeedMultiplier;
-		static const float MouseSensitivity;
-		static const float Gravity;
-		static const float JumpVelocity;
-
-		World world;
-		Entity player;
-		Camera camera;
-		BlockSelection currentBlockSelection;
-		Inventory inventory;
-		bool isCursorLocked;
-
-		BlockSelection findBlockSelection(const glm::vec3& start, const glm::vec3& direction, float maxDistance) const;
-		void updateMouseInput(float dt);
-		void updateMoveKeys(float dt);
-		void rebuildChunkMeshes(Renderer* renderer);
+		bool isRunning;
+		std::unordered_map<uint64_t, Mesh*> chunkMeshes;
+		std::queue<uint64_t> chunkKeysToLoad;
 	};
 }
 

@@ -79,7 +79,7 @@ namespace yamc
 		glUseProgram(0);
 	}
 
-	void Renderer::renderTerrain(const glm::mat4& projectionMatrix, const glm::mat4& viewMatrix, const Terrain& terrain, int visibleChunksRadius, const glm::vec3 cameraPosition) const
+	void Renderer::renderTerrain(const glm::mat4& projectionMatrix, const glm::mat4& viewMatrix, const std::unordered_map<uint64_t, Mesh*>& chunkMeshes, int visibleChunksRadius, const glm::vec3 cameraPosition) const
 	{
 		defaultShader.use();
 		glBindTexture(GL_TEXTURE_2D, atlasTexture.getID());
@@ -88,23 +88,21 @@ namespace yamc
 
 		int cameraChunkX = getChunkIndex(cameraPosition.x, Chunk::MaxWidth);
 		int cameraChunkZ = getChunkIndex(cameraPosition.z, Chunk::MaxLength);
-		auto chunks = terrain.getChunks();
 
 		for (int x = cameraChunkX - visibleChunksRadius; x <= cameraChunkX + visibleChunksRadius; x++) {
 			for (int z = cameraChunkZ - visibleChunksRadius; z <= cameraChunkZ + visibleChunksRadius; z++) {
 				uint64_t key = getChunkKey(x, z);
-				auto pair = chunks.find(key);
-				if (pair != chunks.end()) {
+				auto pair = chunkMeshes.find(key);
+				if (pair != chunkMeshes.end()) {
 					glm::vec3 offset(x * (float)Chunk::MaxWidth, 0, z * (float)Chunk::MaxLength);
 
-					auto chunk = pair->second;
-					const Mesh& mesh = chunk->getMesh();
-					if (mesh.getIndicesCount() > 0) {
+					auto mesh = pair->second;
+					if (mesh->getIndicesCount() > 0) {
 						auto modelMatrix = glm::translate(glm::identity<glm::mat4>(), offset);
 						defaultShader.setMVP(projectionMatrix * viewMatrix * modelMatrix);
 
-						glBindVertexArray(mesh.getVAO());
-						glDrawElements(GL_TRIANGLES, mesh.getIndicesCount(), GL_UNSIGNED_INT, 0);
+						glBindVertexArray(mesh->getVAO());
+						glDrawElements(GL_TRIANGLES, mesh->getIndicesCount(), GL_UNSIGNED_INT, 0);
 						glBindVertexArray(0);
 					}
 				}

@@ -3,9 +3,11 @@
 #include <GLFW/glfw3.h>
 #include <stdexcept>
 #include "View.h"
-#include "Game.h"
+#include "GameView.h"
 #include <chrono>
 #include <thread>
+#include "SinglePlayerGame.h"
+#include "MultiPlayerGame.h"
 
 namespace yamc
 {
@@ -126,7 +128,9 @@ namespace yamc
 
 	void Application::loadInitialView()
 	{
-		currentView = new Game(this, "test", 542917);
+		//auto game = new SinglePlayerGame(542917, "test", getSettings()->visibleChunkRadius);
+		auto game = new MultiPlayerGame(getSettings()->visibleChunkRadius);
+		currentView = new GameView(this, game);
 		currentView->init();
 	}
 

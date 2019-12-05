@@ -113,7 +113,7 @@ namespace yamc
 		}
 	}
 
-	void MeshBuilder::rebuildChunk(uint64_t chunkKey, Chunk* chunk, const Terrain* terrain) const
+	void MeshBuilder::rebuildChunk(uint64_t chunkKey, Chunk* chunk, const Terrain* terrain, Mesh* mesh) const
 	{
 		auto chunkOffset = getChunkOffset(chunkKey);
 
@@ -139,7 +139,7 @@ namespace yamc
 			}
 		}
 
-		chunk->getMesh().setData(positions, uvs, indices);
+		mesh->setData(positions, uvs, indices);
 	}
 };
 

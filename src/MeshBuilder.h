@@ -6,6 +6,7 @@
 #include <vector>
 #include "Chunk.h"
 #include "Terrain.h"
+#include "Mesh.h"
 
 namespace yamc
 {
@@ -24,7 +25,7 @@ namespace yamc
 			uint32_t id, 
 			const Terrain* terrain = nullptr) const;
 
-		void rebuildChunk(uint64_t chunkKey, Chunk* chunk, const Terrain* terrain) const;
+		void rebuildChunk(uint64_t chunkKey, Chunk* chunk, const Terrain* terrain, Mesh* mesh) const;
 
 	private:
 		static const glm::ivec3 BlockFaceNormals[6];

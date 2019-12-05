@@ -3,7 +3,6 @@
 
 #include <stdint.h>
 #include <glm/glm.hpp>
-#include "Mesh.h"
 
 namespace yamc
 {
@@ -20,8 +19,6 @@ namespace yamc
 
 		uint32_t getBlock(uint32_t x, uint32_t y, uint32_t z) const;
 		void setBlock(uint32_t x, uint32_t y, uint32_t z, uint32_t value);
-		const Mesh& getMesh() const;
-		Mesh& getMesh();
 		const void* getData() const;
 		void* getData();
 
@@ -29,7 +26,6 @@ namespace yamc
 
 	private:
 		uint32_t blocks[MaxWidth][MaxHeight][MaxLength];
-		Mesh mesh;
 
 		bool isFaceVisible(int x, int y, int z, const glm::ivec3& normal) const;
 	};

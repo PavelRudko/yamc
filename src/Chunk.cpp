@@ -35,16 +35,6 @@ namespace yamc
 		blocks[x][y][z] = value;
 	}
 
-	const Mesh& Chunk::getMesh() const
-	{
-		return mesh;
-	}
-
-	Mesh& Chunk::getMesh()
-	{
-		return mesh;
-	}
-
 	const void* Chunk::getData() const
 	{
 		return &blocks[0][0][0];
