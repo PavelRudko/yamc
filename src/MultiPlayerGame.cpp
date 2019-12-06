@@ -14,7 +14,7 @@ namespace yamc
 	{
 		Game::init();
 
-		if (initSockets() != 0) {
+		/*if (initSockets() != 0) {
 			printf("Cannot init sockets.");
 			return;
 		}
@@ -26,7 +26,7 @@ namespace yamc
 		}
 
 		struct sockaddr_in serverAddress;
-		serverAddress.sin_addr.s_addr = inet_addr("127.0.0.1");
+		serverAddress.sin_addr.s_addr = inet_addr("192.168.27.202");
 		serverAddress.sin_family = AF_INET;
 		serverAddress.sin_port = htons(8888);
 
@@ -45,7 +45,7 @@ namespace yamc
 		printf("%s\n", message);
 
 		safelyCloseSocket(sock);
-		deinitSockets();
+		deinitSockets();*/
 	}
 
 	void MultiPlayerGame::update(const glm::vec3& playerPosition, float dt)

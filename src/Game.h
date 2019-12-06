@@ -7,6 +7,7 @@
 #include "Renderer.h"
 #include <queue>
 #include <thread>
+#include <mutex>
 
 namespace yamc
 {
@@ -19,7 +20,7 @@ namespace yamc
 
 		void setVisibleChunkRadius(uint32_t visibleChunksRadius);
 		virtual void update(const glm::vec3& playerPosition, float dt);
-		static void backgroundUpdate(Game* game);
+		static void backgroundUpdateLoop(Game* game);
 
 		virtual void loadSurroundingChunks(const glm::vec3& playerPosition);
 
@@ -48,6 +49,9 @@ namespace yamc
 		bool isRunning;
 		std::unordered_map<uint64_t, Mesh*> chunkMeshes;
 		std::queue<uint64_t> chunkKeysToLoad;
+		std::mutex chunksToLoadMutex;
+
+		void backgroundUpdate();
 	};
 }
 

@@ -11,7 +11,6 @@ namespace yamc
 		return glm::ivec2(getChunkIndex(minWorldIndex, chunkSize), getChunkIndex(maxWorldIndex, chunkSize));
 	}
 
-
 	Game::Game(uint32_t visibleChunksRadius) :
 		backgroundThread(),
 		isRunning(false)
@@ -22,7 +21,7 @@ namespace yamc
 	void Game::init()
 	{
 		isRunning = true;
-		backgroundThread = std::move(std::thread(backgroundUpdate, this));
+		backgroundThread = std::move(std::thread(backgroundUpdateLoop, this));
 	}
 
 	void Game::setVisibleChunkRadius(uint32_t visibleChunksRadius)
@@ -68,23 +67,34 @@ namespace yamc
 		}
 	}
 
-	void Game::backgroundUpdate(Game* game)
+	void Game::backgroundUpdate()
+	{
+		uint64_t chunkKey = 0;
+		{
+			std::lock_guard<std::mutex> guard(chunksToLoadMutex);
+			if (chunkKeysToLoad.empty()) {
+				return;
+			}
+
+			chunkKey = chunkKeysToLoad.front();
+			chunkKeysToLoad.pop();
+		}
+		
+		std::unordered_map<uint64_t, Chunk*>& chunks = terrain.getChunks();
+
+		auto chunk = loadChunk(chunkKey);
+		if (chunk == nullptr) {
+			return;
+		}
+
+		chunks[chunkKey] = chunk;
+		terrain.addToRebuildWithAdjacent(chunkKey);
+	}
+
+	void Game::backgroundUpdateLoop(Game* game)
 	{
 		while (game->isRunning) {
-			if (game->chunkKeysToLoad.empty()) {
-				std::this_thread::sleep_for(std::chrono::milliseconds(10));
-				continue;
-			}
-
-			std::unordered_map<uint64_t, Chunk*>& chunks = game->terrain.getChunks();
-
-			while (!game->chunkKeysToLoad.empty()) {
-				uint64_t chunkKey = game->chunkKeysToLoad.front();
-				auto chunk = game->loadChunk(chunkKey);
-				chunks[chunkKey] = chunk;
-				game->terrain.addToRebuildWithAdjacent(chunkKey);
-				game->chunkKeysToLoad.pop();
-			}
+			game->backgroundUpdate();
 		}
 	}
 
@@ -99,6 +109,7 @@ namespace yamc
 			for (int z = boundariesZ[0]; z <= boundariesZ[1]; z++) {
 				auto key = getChunkKey(x, z);
 				if (chunks.find(key) == chunks.end()) {
+					std::lock_guard<std::mutex> guard(chunksToLoadMutex);
 					chunkKeysToLoad.push(key);
 				}
 			}
