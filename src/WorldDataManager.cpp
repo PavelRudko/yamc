@@ -37,7 +37,7 @@ namespace yamc
 
 	std::string WorldDataManager::getChunkPath(uint64_t key) const
 	{
-		return std::string();
+		return directoryPath + std::to_string(key) + ".cnk";
 	}
 
 	void WorldDataManager::ensureWorldDirectoryExists() const

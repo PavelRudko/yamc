@@ -46,7 +46,7 @@ namespace yamc
 		int minX = (int)floorf(x);
 		int maxX = minX + 1;
 		int minY = (int)floorf(y);
-		int maxY = y + 1;
+		int maxY = minY + 1;
 
 		auto topLeft = randomDirection(minX, minY, seed);
 		auto topRight = randomDirection(maxX, minY, seed);
