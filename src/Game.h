@@ -30,6 +30,9 @@ namespace yamc
 		const std::unordered_map<uint64_t, Mesh*>& getChunkMeshes() const;
 		void rebuildChunkMeshes(Renderer* renderer);
 
+		virtual void setBlock(int x, int y, int z, uint32_t type);
+		virtual uint32_t getBlock(int x, int y, int z) const;
+
 		virtual void destroy();
 
 	protected:
@@ -44,14 +47,13 @@ namespace yamc
 
 		virtual Chunk* loadChunk(uint64_t key) = 0;
 		virtual void saveChunk(uint64_t key, Chunk* chunk) = 0;
+		virtual void backgroundUpdate();
 
 	private:
 		bool isRunning;
 		std::unordered_map<uint64_t, Mesh*> chunkMeshes;
 		std::queue<uint64_t> chunkKeysToLoad;
 		std::mutex chunksToLoadMutex;
-
-		void backgroundUpdate();
 	};
 }
 

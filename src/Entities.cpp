@@ -52,7 +52,6 @@ namespace yamc
 	{
 		static float bias = 0.00001f;
 		bool hasCollision = false;
-		entity->isGrounded = false;
 
 		for (auto block : potentialBlocks) {
 			AABB blockBoundingBox;
@@ -89,6 +88,7 @@ namespace yamc
 		auto direction = glm::normalize(entity->velocity);
 		auto delta = entity->velocity * dt;
 		auto deltaLength = glm::length(delta);
+		entity->isGrounded = false;
 		for (float distance = maxStepLength; distance < deltaLength + maxStepLength; distance += maxStepLength) {
 			float t = std::min(distance, deltaLength);
 			entity->boundingBox.center = originalPosition + direction * t;

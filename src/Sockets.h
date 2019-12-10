@@ -8,7 +8,7 @@
 	#include <winsock2.h>
 	#include <Ws2tcpip.h>
 
-    #define IS_INVALID_SOCKET(sock) sock == INVALID_SOCKET
+    #define IS_INVALID_SOCKET(sock) (sock == INVALID_SOCKET)
 
 #else
 	#include <sys/socket.h>
@@ -17,11 +17,13 @@
 	#include <unistd.h>
 
     typedef int SOCKET;
-    #define IS_INVALID_SOCKET(sock) sock < 0
+    #define IS_INVALID_SOCKET(sock) (sock < 0)
+    #define INVALID_SOCKET -1
 #endif
 
 int initSockets(void);
 int deinitSockets(void);
 int safelyCloseSocket(SOCKET sock);
+bool setToNonBlockingMode(SOCKET sock);
 
 #endif

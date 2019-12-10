@@ -2,6 +2,7 @@ set(YAMC_SERVER_SOURCE_FILES
     main.cpp
     Server.cpp
     ../Sockets.cpp
+    ../Network.cpp
 )
 
 set(YAMC_SERVER_HEADER_FILES

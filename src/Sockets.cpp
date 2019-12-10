@@ -32,3 +32,19 @@ int safelyCloseSocket(SOCKET sock)
 #endif
 	return status;
 }
+
+bool setToNonBlockingMode(SOCKET sock)
+{
+#ifdef _WIN32
+	DWORD nonBlocking = 1;
+	if (ioctlsocket(sock, FIONBIO, &nonBlocking) != 0) {
+		return false;
+	}
+#else
+	int nonBlocking = 1;
+	if (fcntl(handle, F_SETFL, O_NONBLOCK, nonBlocking) == -1) {
+		return false;
+	}
+#endif
+	return true;
+}

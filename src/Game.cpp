@@ -171,6 +171,16 @@ namespace yamc
 		chunksToRebuild.clear();
 	}
 
+	void Game::setBlock(int x, int y, int z, uint32_t type)
+	{
+		terrain.setBlock(x, y, z, type);
+	}
+
+	uint32_t Game::getBlock(int x, int y, int z) const
+	{
+		return terrain.getBlock(x, y, z);
+	}
+
 	void Game::destroy()
 	{
 		isRunning = false;

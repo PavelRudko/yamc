@@ -50,6 +50,7 @@ namespace yamc
 	{
 		updateMouseInput(dt);
 		updateMoveKeys(dt);
+		
 		if (!player.isGrounded) {
 			player.velocity.y -= Gravity * dt;
 		}
@@ -109,7 +110,7 @@ namespace yamc
 			tmax[axis] += delta[axis];
 			currentBlock[axis] += step[axis];
 
-			uint32_t block = game->getTerrain().getBlock(currentBlock.x, currentBlock.y, currentBlock.z);
+			uint32_t block = game->getBlock(currentBlock.x, currentBlock.y, currentBlock.z);
 			if (block > 0) {
 				selection.isSelected = true;
 				selection.coordinate = currentBlock;
@@ -150,7 +151,7 @@ namespace yamc
 		if (button == GLFW_MOUSE_BUTTON_1) {
 			if (isCursorLocked) {
 				if (currentBlockSelection.isSelected) {
-					game->getTerrain().setBlock(currentBlockSelection.coordinate.x, currentBlockSelection.coordinate.y, currentBlockSelection.coordinate.z, 0);
+					game->setBlock(currentBlockSelection.coordinate.x, currentBlockSelection.coordinate.y, currentBlockSelection.coordinate.z, 0);
 				}
 			}
 			else {
@@ -170,7 +171,7 @@ namespace yamc
 			auto item = inventory.getHotbarItem(inventory.getSelectedHotbarSlot());
 
 			if (!hasIntersection(player.boundingBox, blockBoundingBox) && item) {
-				game->getTerrain().setBlock(block.x, block.y, block.z, item->id);
+				game->setBlock(block.x, block.y, block.z, item->id);
 			}
 		}
 	}

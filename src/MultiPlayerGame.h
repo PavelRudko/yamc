@@ -2,6 +2,8 @@
 #define YAMC_MULTIPLAYER_GAME_H
 
 #include "Game.h"
+#include "Network.h"
+#include "Sockets.h"
 
 namespace yamc
 {
@@ -16,9 +18,17 @@ namespace yamc
 	protected:
 		virtual Chunk* loadChunk(uint64_t key) override;
 		virtual void saveChunk(uint64_t key, Chunk* chunk) override;
+		virtual void backgroundUpdate() override;
+		virtual void setBlock(int x, int y, int z, uint32_t type) override;
 
 	private:
 		WorldDataManager worldDataManager;
+		SOCKET sock;
+		PackageBuffer packageBuffer;
+		std::queue<BlockDiff> blockDiffsToSend;
+		std::mutex blockDiffsToSendMutex;
+
+		void updateBlockDiffs();
 	};
 }
 

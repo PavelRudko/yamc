@@ -19,6 +19,7 @@ set(YAMC_SOURCE_FILES
     MultiPlayerGame.cpp
     WorldDataManager.cpp
     Sockets.cpp
+    Network.cpp
 )
 
 set(YAMC_HEADER_FILES
@@ -40,6 +41,7 @@ set(YAMC_HEADER_FILES
     MultiPlayerGame.h
     WorldDataManager.h
     Sockets.h
+    Network.h
 )
 
 set(YAMC_SHADERS
