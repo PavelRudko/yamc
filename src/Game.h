@@ -41,6 +41,7 @@ namespace yamc
 		uint32_t purgeRemainingChunksRadius;
 		uint32_t maxChunksInMemory;
 		std::thread backgroundThread;
+		std::mutex terrainMutex;
 
 		void requestSurroundingChunks(const glm::vec3& playerPosition);
 		void unloadDistantChunks(const glm::vec3& position);

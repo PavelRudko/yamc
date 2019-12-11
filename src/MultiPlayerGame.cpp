@@ -78,11 +78,13 @@ namespace yamc
 
 	void MultiPlayerGame::updateBlockDiffs()
 	{
-		std::lock_guard<std::mutex> guard(blockDiffsToSendMutex);
+		{
+			std::lock_guard<std::mutex> guard(blockDiffsToSendMutex);
 
-		packageBuffer.rewind();
-		packageBuffer.writeByte((uint8_t)RequestCodes::UpdateBlockDiffs);
-		writeBlockDiffsToPackage(packageBuffer, blockDiffsToSend);
+			packageBuffer.rewind();
+			packageBuffer.writeByte((uint8_t)RequestCodes::UpdateBlockDiffs);
+			writeBlockDiffsToPackage(packageBuffer, blockDiffsToSend);
+		}
 
 		auto result = send(sock, (const char*)packageBuffer.getData(), packageBuffer.getOffset(), 0);
 		if (result < 0) {
@@ -98,14 +100,17 @@ namespace yamc
 			safelyCloseSocket(sock);
 			sock = INVALID_SOCKET;
 			printf("Connection lost.\n");
-			return;\
+			return;
 		}
 
 		uint8_t responseCode = packageBuffer.readByte();
 		std::vector<BlockDiff> blockDiffs;
 		readBlockDiffsFromPackage(packageBuffer, blockDiffs);
-		for (const auto& blockDiff : blockDiffs) {
-			printf("%d, %d, %d, %d\n", blockDiff.x, blockDiff.y, blockDiff.z, blockDiff.type);
+		if (blockDiffs.size() > 0) {
+			std::lock_guard<std::mutex> guard(terrainMutex);
+			for (const auto& blockDiff : blockDiffs) {
+				terrain.setBlock(blockDiff.x, blockDiff.y, blockDiff.z, blockDiff.type);
+			}
 		}
 	}
 

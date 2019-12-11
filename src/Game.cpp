@@ -152,6 +152,7 @@ namespace yamc
 
 	void Game::rebuildChunkMeshes(Renderer* renderer)
 	{
+		std::lock_guard<std::mutex> guard(terrainMutex);
 		auto& chunksToRebuild = terrain.getChunkKeysToRebuild();
 		for (uint64_t chunkKey : chunksToRebuild) {
 			auto chunk = terrain.getChunks()[chunkKey];
