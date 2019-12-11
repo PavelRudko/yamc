@@ -124,4 +124,31 @@ namespace yamc
 			delete data;
 		}
 	}
+
+	void writeBlockDiffsToPackage(PackageBuffer& packageBuffer, std::queue<BlockDiff>& blockDiffs)
+	{
+		packageBuffer.writeByte(blockDiffs.size());
+		while (!blockDiffs.empty()) {
+			auto diff = blockDiffs.front();
+			blockDiffs.pop();
+
+			packageBuffer.writeInt32(diff.x);
+			packageBuffer.writeInt32(diff.y);
+			packageBuffer.writeInt32(diff.z);
+			packageBuffer.writeUint32(diff.type);
+		}
+	}
+
+	void readBlockDiffsFromPackage(PackageBuffer& packageBuffer, std::vector<BlockDiff>& blockDiffs)
+	{
+		uint8_t count = packageBuffer.readByte();
+		for (int i = 0; i < count; i++) {
+			BlockDiff blockDiff;
+			blockDiff.x = packageBuffer.readInt32();
+			blockDiff.y = packageBuffer.readInt32();
+			blockDiff.z = packageBuffer.readInt32();
+			blockDiff.type = packageBuffer.readUint32();
+			blockDiffs.push_back(blockDiff);
+		}
+	}
 }

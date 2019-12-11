@@ -22,7 +22,6 @@ namespace yamc
 		virtual void setBlock(int x, int y, int z, uint32_t type) override;
 
 	private:
-		WorldDataManager worldDataManager;
 		SOCKET sock;
 		PackageBuffer packageBuffer;
 		std::queue<BlockDiff> blockDiffsToSend;

@@ -2,6 +2,7 @@
 #define YAMC_NETWORK_H
 
 #include <stdint.h>
+#include <queue>
 
 namespace yamc
 {
@@ -55,6 +56,9 @@ namespace yamc
 		size_t offset;
 		size_t capacity;
 	};
+
+	void writeBlockDiffsToPackage(PackageBuffer& packageBuffer, std::queue<BlockDiff>& blockDiffs);
+	void readBlockDiffsFromPackage(PackageBuffer& packageBuffer, std::vector<BlockDiff>& blockDiffs);
 }
 
 #endif

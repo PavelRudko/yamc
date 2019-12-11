@@ -1,7 +1,5 @@
 #include "Server.h"
 #include <stdexcept>
-#include <iostream>
-#include "../Network.h"
 
 namespace yamc
 {
@@ -86,14 +84,40 @@ namespace yamc
 			uint8_t requestCode = packageBuffer.readByte();
 			switch (requestCode) {
 			case (uint8_t)RequestCodes::UpdateBlockDiffs:
-				uint8_t count = packageBuffer.readByte();
-				if (count > 0) {
-					printf("Client %d sent %d block diffs\n", client->id, count);
-				}
+				processBlockDiffs(packageBuffer, client);
 				break;
 			}
 
 			lastTickTime = std::chrono::high_resolution_clock::now();
+		}
+	}
+
+	void Server::processBlockDiffs(PackageBuffer& packageBuffer, ClientInfo* client)
+	{
+		std::vector<BlockDiff> blockDiffs;
+		readBlockDiffsFromPackage(packageBuffer, blockDiffs);
+		
+		if (blockDiffs.size() > 0) {
+			broadcastBlockDiffs(blockDiffs, client->id);
+		}
+
+		packageBuffer.rewind();
+		packageBuffer.writeByte((uint8_t)ResponseCodes::UpdateBlockDiffs);
+		std::lock_guard<std::mutex> guard(client->blockDiffsToSendMutex);
+		writeBlockDiffsToPackage(packageBuffer, client->blockDiffsToSend);
+
+		send(client->sock, (const char*)packageBuffer.getData(), packageBuffer.getOffset(), 0);
+	}
+
+	void Server::broadcastBlockDiffs(const std::vector<BlockDiff>& blockDiffs, uint32_t clientId)
+	{
+		for (auto client : clients) {
+			if (client->id != clientId) {
+				std::lock_guard<std::mutex> guard(client->blockDiffsToSendMutex);
+				for (const auto& blockDiff : blockDiffs) {
+					client->blockDiffsToSend.push(blockDiff);
+				}
+			}
 		}
 	}
 
@@ -110,7 +134,7 @@ namespace yamc
 	void Server::connectClient(SOCKET clientSock)
 	{
 		auto client = new ClientInfo;
-		client->isConnected = false;
+		client->isConnected = true;
 		client->sock = clientSock;
 		client->id = clientIdCounter;
 		client->thread = std::move(std::thread(startHandlerThread, this, client));

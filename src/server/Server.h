@@ -2,9 +2,12 @@
 #define YAMC_SERVER_SERVER_H
 
 #include "../Sockets.h"
+#include "../Network.h"
 #include <thread>
 #include <atomic>
 #include <set>
+#include <queue>
+#include <mutex>
 
 namespace yamc
 {
@@ -14,6 +17,8 @@ namespace yamc
 		SOCKET sock;
 		bool isConnected;
 		std::thread thread;
+		std::mutex blockDiffsToSendMutex;
+		std::queue<BlockDiff> blockDiffsToSend;
 	};
 
 	class Server
@@ -38,6 +43,8 @@ namespace yamc
 
 		void mainLoop();
 		void clientHandler(ClientInfo* client);
+		void processBlockDiffs(PackageBuffer& packageBuffer, ClientInfo* client);
+		void broadcastBlockDiffs(const std::vector<BlockDiff>& blockDiffs, uint32_t clientId);
 		void connectClient(SOCKET clientSock);
 		void cleanupCompletedHandlers();
 	};
