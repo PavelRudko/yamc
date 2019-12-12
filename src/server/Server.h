@@ -41,6 +41,7 @@ namespace yamc
 		std::atomic_bool isRunning;
 		std::set<ClientInfo*> clients;
 		std::unordered_map<uint64_t, Chunk*> chunks;
+		std::mutex terrainMutex;
 
 		static void startMainLoop(Server* server);
 		static void startHandlerThread(Server* server, ClientInfo* client);
@@ -51,6 +52,7 @@ namespace yamc
 		void processBlockDiffs(PackageBuffer& packageBuffer, ClientInfo* client);
 		void processLoadChunk(PackageBuffer& packageBuffer, ClientInfo* client);
 		void broadcastBlockDiffs(const std::vector<BlockDiff>& blockDiffs, uint32_t clientId);
+		void applyBlockDiffs(const std::vector<BlockDiff>& blockDiffs);
 		bool sendPackage(PackageBuffer& packageBuffer, ClientInfo* client);
 		void connectClient(SOCKET clientSock);
 		void cleanupCompletedHandlers();

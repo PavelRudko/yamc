@@ -80,6 +80,7 @@ namespace yamc
 			chunkKeysToLoad.pop();
 		}
 		
+		std::lock_guard<std::mutex> guard(terrainMutex);
 		std::unordered_map<uint64_t, Chunk*>& chunks = terrain.getChunks();
 
 		auto chunk = loadChunk(chunkKey);

@@ -115,6 +115,7 @@ namespace yamc
 	{
 		std::vector<BlockDiff> blockDiffs;
 		readBlockDiffsFromPackage(packageBuffer, blockDiffs);
+		applyBlockDiffs(blockDiffs);
 		
 		if (blockDiffs.size() > 0) {
 			broadcastBlockDiffs(blockDiffs, client->id);
@@ -130,15 +131,18 @@ namespace yamc
 
 	void Server::processLoadChunk(PackageBuffer& packageBuffer, ClientInfo* client)
 	{
+		std::lock_guard<std::mutex> guard(terrainMutex);
 		uint64_t chunkKey = packageBuffer.readUint64();
-		auto chunk = std::make_unique<Chunk>();
-		for (int x = 0; x < Chunk::MaxWidth; x++) {
-			for (int z = 0; z < Chunk::MaxLength; z++) {
-				for (int y = 0; y < 40; y++) {
-					chunk->setBlock(x, y, z, 1);
-				}
-			}
+
+		auto chunkEntry = chunks.find(chunkKey);
+		if (chunkEntry == chunks.end()) {
+			packageBuffer.rewind();
+			packageBuffer.writeByte((uint8_t)ResponseCodes::ChunkIsUnchanged);
+			sendPackage(packageBuffer, client);
+			return;
 		}
+
+		auto chunk = chunkEntry->second;
 
 		std::vector<uint8_t> compressedData;
 		compressData(chunk->getData(), Chunk::MaxHeight * Chunk::MaxLength * Chunk::MaxWidth * sizeof(uint32_t), compressedData);
@@ -159,7 +163,7 @@ namespace yamc
 		while (totalSize - offset > 0) {
 			packageBuffer.rewind();
 			packageBuffer.writeByte((uint8_t)ResponseCodes::ChunkDataPart);
-			bytesToWrite = std::min(packageBuffer.getAvailableSpace(), totalSize - offset);
+			bytesToWrite = (std::min)(packageBuffer.getAvailableSpace(), totalSize - offset);
 			packageBuffer.writeBuffer(compressedData.data() + offset, bytesToWrite);
 			if (!sendPackage(packageBuffer, client)) {
 				return;
@@ -177,6 +181,33 @@ namespace yamc
 					client->blockDiffsToSend.push(blockDiff);
 				}
 			}
+		}
+	}
+
+	void Server::applyBlockDiffs(const std::vector<BlockDiff>& blockDiffs)
+	{
+		std::lock_guard<std::mutex> guard(terrainMutex);
+		for (const auto& blockDiff : blockDiffs) {
+			int chunkX = getChunkIndex(blockDiff.x, Chunk::MaxWidth);
+			int chunkZ = getChunkIndex(blockDiff.z, Chunk::MaxLength);
+
+			uint32_t localX = getLocalBlockIndex(blockDiff.x, Chunk::MaxWidth);
+			uint32_t localZ = getLocalBlockIndex(blockDiff.z, Chunk::MaxLength);
+
+			uint64_t chunkKey = getChunkKey(chunkX, chunkZ);
+
+			Chunk* chunk = nullptr;
+			auto chunkEntry = chunks.find(chunkKey);
+			if (chunkEntry == chunks.end()) {
+				chunk = new Chunk;
+				fillChunk(chunk, chunkX, chunkZ, seed);
+				chunks[chunkKey] = chunk;
+			}
+			else {
+				chunk = chunkEntry->second;
+			}
+
+			chunk->setBlock(localX, blockDiff.y, localZ, blockDiff.type);
 		}
 	}
 
@@ -232,6 +263,9 @@ namespace yamc
 	{
 		isRunning = false;
 		serverThread.join();
+		for (auto chunkEntry : chunks) {
+			delete chunkEntry.second;
+		}
 	}
 
 	Server::~Server()

@@ -5,6 +5,7 @@ set(YAMC_SERVER_SOURCE_FILES
     ../Network.cpp
     ../Compression.cpp
     ../Chunk.cpp
+    ../Terrain.cpp
 )
 
 set(YAMC_SERVER_HEADER_FILES

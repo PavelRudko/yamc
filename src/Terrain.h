@@ -9,6 +9,7 @@
 namespace yamc
 {
 	int getChunkIndex(int worldIndex, int chunkSize);
+	uint32_t getLocalBlockIndex(int worldIndex, uint32_t chunkSize);
 	uint64_t getChunkKey(int high, int low);
 	glm::ivec2 getChunkOffset(uint64_t key);
 	void fillChunk(Chunk* chunk, int offsetX, int offsetZ, int seed);

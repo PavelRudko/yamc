@@ -8,9 +8,19 @@
 #include <thread>
 #include "SinglePlayerGame.h"
 #include "MultiPlayerGame.h"
+#include <fstream>
 
 namespace yamc
 {
+	std::string loadDummyConfigString()
+	{
+		std::string line;
+		std::ifstream stream;
+		stream.open("data/config.txt");
+		std::getline(stream, line);
+		return line;
+	}
+
 	Application::Application()
 	{
 		loadSettings();
@@ -129,7 +139,8 @@ namespace yamc
 	void Application::loadInitialView()
 	{
 		//auto game = new SinglePlayerGame(542917, "test", getSettings()->visibleChunkRadius);
-		auto game = new MultiPlayerGame(getSettings()->visibleChunkRadius);
+		auto serverAddress = loadDummyConfigString();
+		auto game = new MultiPlayerGame(serverAddress, 8888, getSettings()->visibleChunkRadius);
 		currentView = new GameView(this, game);
 		currentView->init();
 	}

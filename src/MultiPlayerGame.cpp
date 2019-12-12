@@ -4,8 +4,10 @@
 
 namespace yamc
 {
-	MultiPlayerGame::MultiPlayerGame(uint32_t visibleChunksRadius) :
+	MultiPlayerGame::MultiPlayerGame(const std::string& serverAddressStr, int port, uint32_t visibleChunksRadius) :
 		Game(visibleChunksRadius),
+		serverAddressStr(serverAddressStr),
+		port(port),
 		packageBuffer(PackageBufferCapacity),
 		sock(INVALID_SOCKET),
 		isConnected(false),
@@ -30,9 +32,9 @@ namespace yamc
 		}
 
 		struct sockaddr_in serverAddress;
-		serverAddress.sin_addr.s_addr = inet_addr("127.0.0.1");
+		serverAddress.sin_addr.s_addr = inet_addr(serverAddressStr.c_str());
 		serverAddress.sin_family = AF_INET;
-		serverAddress.sin_port = htons(8888);
+		serverAddress.sin_port = htons(port);
 
 		if (connect(serverSock, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) < 0) {
 			printf("Cannot connect to server.\n");
@@ -141,6 +143,7 @@ namespace yamc
 		uint8_t responseCode = packageBuffer.readByte();
 		if (responseCode == (uint8_t)ResponseCodes::ChunkDataStart) {
 			size_t totalSize = packageBuffer.readUint32();
+			printf("Received %d bytes of data.\n", (int)totalSize);
 			std::vector<uint8_t> compressedData(totalSize);
 
 			size_t offset = 0;
@@ -153,11 +156,17 @@ namespace yamc
 					return chunk;
 				}
 
+				responseCode = packageBuffer.readByte();
 				bytesToRead = (std::min)(packageBuffer.getAvailableSpace(), totalSize - offset);
 				packageBuffer.readBuffer(compressedData.data() + offset, bytesToRead);
+				offset += bytesToRead;
 			}
 
 			decompressData(compressedData.data(), compressedData.size(), chunk->getData(), Chunk::MaxHeight * Chunk::MaxLength * Chunk::MaxWidth * sizeof(uint32_t));
+		}
+		else if (responseCode == (uint8_t)ResponseCodes::ChunkIsUnchanged) {
+			auto chunkOffset = getChunkOffset(key);
+			fillChunk(chunk, chunkOffset[0], chunkOffset[1], seed);
 		}
 		
 		return chunk;
@@ -177,22 +186,29 @@ namespace yamc
 	{
 		auto result = send(sock, (char*)packageBuffer.getData(), packageBuffer.getCapacity(), 0);
 		if (result < 0) {
-			safelyCloseSocket(sock);
-			sock = INVALID_SOCKET;
-			printf("Connection lost.\n");
+			if (isConnected) {
+				safelyCloseSocket(sock);
+				sock = INVALID_SOCKET;
+				printf("Connection lost.\n");
+				isConnected = false;
+			}
 			return false;
 		}
 		return true;
 	}
 
+	
 	bool MultiPlayerGame::receivePackage(PackageBuffer& packageBuffer)
 	{
 		packageBuffer.rewind();
 		auto result = recv(sock, (char*)packageBuffer.getData(), packageBuffer.getCapacity(), 0);
 		if (result < 0) {
-			safelyCloseSocket(sock);
-			sock = INVALID_SOCKET;
-			printf("Connection lost.\n");
+			if (isConnected) {
+				safelyCloseSocket(sock);
+				sock = INVALID_SOCKET;
+				printf("Connection lost.\n");
+				isConnected = false;
+			}
 			return false;
 		}
 		return true;

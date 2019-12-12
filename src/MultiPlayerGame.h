@@ -11,7 +11,7 @@ namespace yamc
 	class MultiPlayerGame : public Game
 	{
 	public:
-		MultiPlayerGame(uint32_t visibleChunksRadius);
+		MultiPlayerGame(const std::string& serverAddressStr, int port, uint32_t visibleChunksRadius);
 		virtual void init() override;
 		virtual void update(const glm::vec3& playerPosition, float dt) override;
 		virtual void destroy() override;
@@ -25,13 +25,15 @@ namespace yamc
 
 	private:
 		int seed;
+		std::string serverAddressStr;
+		int port;
 		SOCKET sock;
 		std::atomic_bool isConnected;
 		PackageBuffer packageBuffer;
 		std::queue<BlockDiff> blockDiffsToSend;
 		std::mutex blockDiffsToSendMutex;
 		std::mutex connectionMutex;
-
+		
 		bool requestConnection();
 		void updateBlockDiffs();
 		bool receivePackage(PackageBuffer& packageBuffer);
