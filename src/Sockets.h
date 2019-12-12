@@ -15,6 +15,7 @@
 	#include <arpa/inet.h>
 	#include <netdb.h> 
 	#include <unistd.h>
+    #include <fcntl.h>
 
     typedef int SOCKET;
     #define IS_INVALID_SOCKET(sock) (sock < 0)

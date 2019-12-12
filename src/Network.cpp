@@ -2,6 +2,7 @@
 
 namespace yamc
 {
+
 	PackageBuffer::PackageBuffer(size_t capacity) :
 		capacity(capacity),
 		offset(0)
@@ -51,7 +52,7 @@ namespace yamc
 	void PackageBuffer::writeInt32(int32_t value)
 	{
 #ifdef BIG_ENDIAN
-		*((int32_t*)(data + offset)) = bswap(value);
+		*((int32_t*)(data + offset)) = value;
 #else
 		*((int32_t*)(data + offset)) = value;
 #endif
@@ -61,7 +62,7 @@ namespace yamc
 	void PackageBuffer::writeUint32(uint32_t value)
 	{
 #ifdef BIG_ENDIAN
-		* ((uint32_t*)(data + offset)) = bswap(value);
+		* ((uint32_t*)(data + offset)) = value;
 #else
 		* ((uint32_t*)(data + offset)) = value;
 #endif
@@ -71,7 +72,7 @@ namespace yamc
 	void PackageBuffer::writeUint64(uint64_t value)
 	{
 #ifdef BIG_ENDIAN
-		* ((uint64_t*)(data + offset)) = bswap(value);
+		* ((uint64_t*)(data + offset)) = value;
 #else
 		*((uint64_t*)(data + offset)) = value;
 #endif
@@ -81,7 +82,7 @@ namespace yamc
 	void PackageBuffer::writeFloat(float value)
 	{
 #ifdef BIG_ENDIAN
-		*((float*)(data + offset)) = bswap(value);
+		*((float*)(data + offset)) = value;
 #else
 		*((float*)(data + offset)) = value;
 #endif
@@ -104,7 +105,7 @@ namespace yamc
 	int32_t PackageBuffer::readInt32()
 	{	
 #ifdef BIG_ENDIAN
-		int32_t value = *((int32_t*)(data + offset)) = bswap(value);
+		int32_t value = *((int32_t*)(data + offset));
 #else
 		int32_t value = *((int32_t*)(data + offset));
 #endif
@@ -115,7 +116,7 @@ namespace yamc
 	uint32_t PackageBuffer::readUint32()
 	{
 #ifdef BIG_ENDIAN
-		uint32_t value = *((uint32_t*)(data + offset)) = bswap(value);
+		uint32_t value = *((uint32_t*)(data + offset));
 #else
 		uint32_t value = *((uint32_t*)(data + offset));
 #endif
@@ -126,7 +127,7 @@ namespace yamc
 	uint64_t PackageBuffer::readUint64()
 	{
 #ifdef BIG_ENDIAN
-		uint64_t value = *((uint64_t*)(data + offset)) = bswap(value);
+		uint64_t value = *((uint64_t*)(data + offset));
 #else
 		uint64_t value = *((uint64_t*)(data + offset));
 #endif
@@ -137,7 +138,7 @@ namespace yamc
 	float PackageBuffer::readFloat()
 	{
 #ifdef BIG_ENDIAN
-		int32_t value = *((float*)(data + offset)) = bswap(value);
+		int32_t value = *((float*)(data + offset));
 #else
 		float value = *((float*)(data + offset));
 #endif

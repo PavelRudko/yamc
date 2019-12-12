@@ -42,7 +42,7 @@ bool setToNonBlockingMode(SOCKET sock)
 	}
 #else
 	int nonBlocking = 1;
-	if (fcntl(handle, F_SETFL, O_NONBLOCK, nonBlocking) == -1) {
+	if (fcntl(sock, F_SETFL, O_NONBLOCK, nonBlocking) == -1) {
 		return false;
 	}
 #endif
