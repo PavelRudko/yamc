@@ -37,6 +37,11 @@ namespace yamc
 		return capacity;
 	}
 
+	size_t PackageBuffer::getAvailableSpace() const
+	{
+		return capacity - offset;
+	}
+
 	void PackageBuffer::writeByte(uint8_t value)
 	{
 		*(data + offset) = value;
@@ -63,6 +68,16 @@ namespace yamc
 		offset += sizeof(uint32_t);
 	}
 
+	void PackageBuffer::writeUint64(uint64_t value)
+	{
+#ifdef BIG_ENDIAN
+		* ((uint64_t*)(data + offset)) = bswap(value);
+#else
+		*((uint64_t*)(data + offset)) = value;
+#endif
+		offset += sizeof(uint64_t);
+	}
+
 	void PackageBuffer::writeFloat(float value)
 	{
 #ifdef BIG_ENDIAN
@@ -71,6 +86,12 @@ namespace yamc
 		*((float*)(data + offset)) = value;
 #endif
 		offset += sizeof(float);
+	}
+
+	void PackageBuffer::writeBuffer(const void* src, size_t size)
+	{
+		memcpy(data + offset, src, size);
+		offset += size;
 	}
 
 	uint8_t PackageBuffer::readByte()
@@ -102,6 +123,17 @@ namespace yamc
 		return value;
 	}
 
+	uint64_t PackageBuffer::readUint64()
+	{
+#ifdef BIG_ENDIAN
+		uint64_t value = *((uint64_t*)(data + offset)) = bswap(value);
+#else
+		uint64_t value = *((uint64_t*)(data + offset));
+#endif
+		offset += sizeof(uint64_t);
+		return value;
+	}
+
 	float PackageBuffer::readFloat()
 	{
 #ifdef BIG_ENDIAN
@@ -111,6 +143,12 @@ namespace yamc
 #endif
 		offset += sizeof(float);
 		return value;
+	}
+
+	void PackageBuffer::readBuffer(void* dst, size_t size)
+	{
+		memcpy(dst, data + offset, size);
+		offset += size;
 	}
 
 	void PackageBuffer::rewind()

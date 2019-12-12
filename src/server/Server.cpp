@@ -1,12 +1,16 @@
 #include "Server.h"
 #include <stdexcept>
+#include "../Compression.h"
+#include <iostream>
+#include <memory>
 
 namespace yamc
 {
-	Server::Server(int port) :
+	Server::Server(int port, int seed) :
 		serverThread(),
 		isRunning(false),
 		port(port),
+		seed(seed),
 		clientIdCounter(0)
 	{
 		if (initSockets() != 0) {
@@ -68,7 +72,7 @@ namespace yamc
 
 		auto lastTickTime = std::chrono::high_resolution_clock::now();
 
-		while (isRunning) {
+		while (isRunning && client->isConnected) {
 			packageBuffer.rewind();
 			auto bytesRead = recv(client->sock, (char*)packageBuffer.getData(), PackageBufferCapacity, 0);
 			if (bytesRead <= 0) {
@@ -83,13 +87,28 @@ namespace yamc
 
 			uint8_t requestCode = packageBuffer.readByte();
 			switch (requestCode) {
+			case (uint8_t)RequestCodes::Connect:
+				processConnect(packageBuffer, client);
+				break;
 			case (uint8_t)RequestCodes::UpdateBlockDiffs:
 				processBlockDiffs(packageBuffer, client);
+				break;
+			case (uint8_t)RequestCodes::LoadChunk:
+				processLoadChunk(packageBuffer, client);
 				break;
 			}
 
 			lastTickTime = std::chrono::high_resolution_clock::now();
 		}
+	}
+
+	void Server::processConnect(PackageBuffer& packageBuffer, ClientInfo* client)
+	{
+		packageBuffer.rewind();
+		packageBuffer.writeByte((uint8_t)ResponseCodes::WorldSettings);
+		packageBuffer.writeInt32(seed);
+
+		sendPackage(packageBuffer, client);
 	}
 
 	void Server::processBlockDiffs(PackageBuffer& packageBuffer, ClientInfo* client)
@@ -106,7 +125,47 @@ namespace yamc
 		std::lock_guard<std::mutex> guard(client->blockDiffsToSendMutex);
 		writeBlockDiffsToPackage(packageBuffer, client->blockDiffsToSend);
 
-		send(client->sock, (const char*)packageBuffer.getData(), packageBuffer.getOffset(), 0);
+		sendPackage(packageBuffer, client);
+	}
+
+	void Server::processLoadChunk(PackageBuffer& packageBuffer, ClientInfo* client)
+	{
+		uint64_t chunkKey = packageBuffer.readUint64();
+		auto chunk = std::make_unique<Chunk>();
+		for (int x = 0; x < Chunk::MaxWidth; x++) {
+			for (int z = 0; z < Chunk::MaxLength; z++) {
+				for (int y = 0; y < 40; y++) {
+					chunk->setBlock(x, y, z, 1);
+				}
+			}
+		}
+
+		std::vector<uint8_t> compressedData;
+		compressData(chunk->getData(), Chunk::MaxHeight * Chunk::MaxLength * Chunk::MaxWidth * sizeof(uint32_t), compressedData);
+
+		size_t offset = 0;
+		size_t totalSize = compressedData.size();
+
+		packageBuffer.rewind();
+		packageBuffer.writeByte((uint8_t)ResponseCodes::ChunkDataStart);
+		packageBuffer.writeUint32(totalSize);
+		size_t bytesToWrite = std::min(packageBuffer.getAvailableSpace(), totalSize);
+		packageBuffer.writeBuffer(compressedData.data(), bytesToWrite);
+		if (!sendPackage(packageBuffer, client)) {
+			return;
+		}
+		offset += bytesToWrite;
+
+		while (totalSize - offset > 0) {
+			packageBuffer.rewind();
+			packageBuffer.writeByte((uint8_t)ResponseCodes::ChunkDataPart);
+			bytesToWrite = std::min(packageBuffer.getAvailableSpace(), totalSize - offset);
+			packageBuffer.writeBuffer(compressedData.data() + offset, bytesToWrite);
+			if (!sendPackage(packageBuffer, client)) {
+				return;
+			}
+			offset += bytesToWrite;
+		}
 	}
 
 	void Server::broadcastBlockDiffs(const std::vector<BlockDiff>& blockDiffs, uint32_t clientId)
@@ -119,6 +178,16 @@ namespace yamc
 				}
 			}
 		}
+	}
+
+	bool Server::sendPackage(PackageBuffer& packageBuffer, ClientInfo* client)
+	{
+		auto result = send(client->sock, (const char*)packageBuffer.getData(), packageBuffer.getOffset(), 0);
+		if (result < 0) {
+			client->isConnected = false;
+			return false;
+		}
+		return true;
 	}
 
 	void Server::startMainLoop(Server* server)

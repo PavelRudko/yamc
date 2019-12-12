@@ -20,6 +20,7 @@ set(YAMC_SOURCE_FILES
     WorldDataManager.cpp
     Sockets.cpp
     Network.cpp
+    Compression.cpp
 )
 
 set(YAMC_HEADER_FILES
@@ -42,6 +43,7 @@ set(YAMC_HEADER_FILES
     WorldDataManager.h
     Sockets.h
     Network.h
+    Compression.h
 )
 
 set(YAMC_SHADERS
@@ -62,7 +64,7 @@ else()
 endif()
 
 add_executable(yamc ${YAMC_SOURCE_FILES} ${YAMC_HEADER_FILES} ${YAMC_SHADERS})
-target_link_libraries(yamc PUBLIC glfw ${OPENGL_LIBRARIES} ${SOCKET_LIBRARIES})
+target_link_libraries(yamc PUBLIC glfw ${OPENGL_LIBRARIES} ${SOCKET_LIBRARIES} zlibstatic)
 set_target_properties(yamc PROPERTIES 
                       VS_DEBUGGER_WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}"
                       CXX_STANDARD 17

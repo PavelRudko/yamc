@@ -3,9 +3,11 @@
 
 #include "../Sockets.h"
 #include "../Network.h"
+#include "../Terrain.h"
 #include <thread>
 #include <atomic>
 #include <set>
+#include <unordered_map>
 #include <queue>
 #include <mutex>
 
@@ -24,7 +26,7 @@ namespace yamc
 	class Server
 	{
 	public:
-		Server(int port);
+		Server(int port, int seed);
 		void start();
 		void stop();
 		~Server();
@@ -33,18 +35,23 @@ namespace yamc
 		static constexpr int ConnectionTimeout = 1000;
 
 		int port;
+		int seed;
 		uint32_t clientIdCounter;
 		std::thread serverThread;
 		std::atomic_bool isRunning;
 		std::set<ClientInfo*> clients;
+		std::unordered_map<uint64_t, Chunk*> chunks;
 
 		static void startMainLoop(Server* server);
 		static void startHandlerThread(Server* server, ClientInfo* client);
 
 		void mainLoop();
 		void clientHandler(ClientInfo* client);
+		void processConnect(PackageBuffer& packageBuffer, ClientInfo* client);
 		void processBlockDiffs(PackageBuffer& packageBuffer, ClientInfo* client);
+		void processLoadChunk(PackageBuffer& packageBuffer, ClientInfo* client);
 		void broadcastBlockDiffs(const std::vector<BlockDiff>& blockDiffs, uint32_t clientId);
+		bool sendPackage(PackageBuffer& packageBuffer, ClientInfo* client);
 		void connectClient(SOCKET clientSock);
 		void cleanupCompletedHandlers();
 	};

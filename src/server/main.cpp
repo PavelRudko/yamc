@@ -6,7 +6,7 @@ int main()
 {
 	try {
 		int port = 8888;
-		yamc::Server server(port);
+		yamc::Server server(port, 64591);
 		server.start();
 		std::cout << "Running on port " << port << "..." << std::endl;
 		std::cout << "Press ENTER to stop." << std::endl;

@@ -24,14 +24,14 @@ namespace yamc
 		player.boundingBox.halfSize = glm::vec3(0.4f, 0.9f, 0.4f);
 		player.velocity = glm::vec3(0, 0, 0);
 		player.isGrounded = false;
-
-		game->loadSurroundingChunks(player.boundingBox.center);
-		pushEntityToTheTop(game->getTerrain(), &player);
 	}
 
 	void GameView::init()
 	{
 		game->init();
+
+		game->loadSurroundingChunks(player.boundingBox.center);
+		pushEntityToTheTop(game->getTerrain(), &player);
 
 		currentBlockSelection.isSelected = false;
 
