@@ -138,9 +138,9 @@ namespace yamc
 
 	void Application::loadInitialView()
 	{
-		//auto game = new SinglePlayerGame(542917, "test", getSettings()->visibleChunkRadius);
-		auto serverAddress = loadDummyConfigString();
-		auto game = new MultiPlayerGame(serverAddress, 8888, getSettings()->visibleChunkRadius);
+		auto game = new SinglePlayerGame(542917, "test", getSettings()->visibleChunkRadius);
+		//auto serverAddress = loadDummyConfigString();
+		//auto game = new MultiPlayerGame(serverAddress, 8888, getSettings()->visibleChunkRadius);
 		currentView = new GameView(this, game);
 		currentView->init();
 	}
